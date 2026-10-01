@@ -8,7 +8,7 @@ needed once installed.
 Open **PowerShell** on the PC you'll use for the race, paste this, and press Enter:
 
 ```powershell
-irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/main/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/master/bootstrap.ps1 | iex
 ```
 
 It will ask **where to install TimeTaker** — press Enter to accept the
@@ -35,7 +35,7 @@ folder, set it first and then run the install command:
 
 ```powershell
 $env:TIMETAKER_INSTALL_PATH = "D:\Race\TimeTaker"
-irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/main/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/master/bootstrap.ps1 | iex
 ```
 
 The RFID reader reads scans system-wide, so Windows may ask you to

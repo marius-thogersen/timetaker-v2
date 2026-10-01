@@ -108,8 +108,11 @@ $writer.WriteLine('{"time":"2024-01-01T10:00:00.000","code":"0000000001"}')
 ## Distribution
 
 - **`bootstrap.ps1`** — the single command end users run
-  (`irm .../bootstrap.ps1 | iex`). Downloads the `main` branch zip from
-  GitHub, installs it, runs `install.ps1`, and creates two Desktop
+  (`irm .../bootstrap.ps1 | iex`). Downloads the `master` branch zip from
+  GitHub (this repo's default branch — if you ever rename it, update the
+  branch name in `bootstrap.ps1`'s URLs and `$repoZipUrl`, and in
+  `README.md`'s install command, all at once), installs it, runs
+  `install.ps1`, and creates two Desktop
   shortcuts. **The GitHub owner/repo is hardcoded near the top of this file
   and in `README.md`'s install command** — update both if the repo moves.
   Install location resolves in this order: the `-InstallPath` parameter,
