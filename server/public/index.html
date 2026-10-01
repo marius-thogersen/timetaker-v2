@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TimeTaker</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>TimeTaker</h1>
+    <span id="statusPill" class="pill">Signup</span>
+  </header>
+
+  <main>
+    <section id="signupView">
+      <h2>Sign up participants</h2>
+      <p class="hint">Focus the RFID field and scan a chip — it types the code and submits automatically.</p>
+
+      <form id="signupForm">
+        <label>
+          Name
+          <input type="text" id="nameInput" autocomplete="off" required />
+        </label>
+        <label>
+          Gender
+          <select id="genderInput">
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other" selected>Other / unspecified</option>
+          </select>
+        </label>
+        <label>
+          RFID code
+          <input type="text" id="rfidInput" autocomplete="off" required />
+        </label>
+        <button type="submit">Add participant</button>
+      </form>
+      <p id="signupError" class="error" hidden></p>
+
+      <table id="participantsTable">
+        <thead>
+          <tr><th>Name</th><th>Gender</th><th>RFID code</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <button id="startButton" class="primary">Start race</button>
+    </section>
+
+    <section id="raceView" hidden>
+      <div class="race-toolbar">
+        <span id="scanInfo" class="hint"></span>
+        <button id="resetButton" class="danger">Reset race</button>
+      </div>
+      <table id="leaderboardTable">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>Gender</th><th>Rounds</th><th>Last lap</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

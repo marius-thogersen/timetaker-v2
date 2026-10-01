@@ -1,0 +1,9 @@
+data/race.json
+data/*.tmp
+node_modules/
+rfid-reader/__pycache__/
+rfid-reader/build/
+rfid-reader/dist/
+rfid-reader/*.spec
+rfid-reader/app.log
+rfid-reader/pending_scans.json

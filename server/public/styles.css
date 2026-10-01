@@ -1,0 +1,110 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b12;
+  --panel: #13131f;
+  --border: #1e1e35;
+  --accent: #00d4ff;
+  --success: #00ff99;
+  --error: #ff3d6b;
+  --text: #dcdcf0;
+  --dim: #7777a0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+h1 { margin: 0; color: var(--accent); font-size: 1.4rem; }
+
+.pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+.pill.started { color: var(--success); border-color: var(--success); }
+
+main { padding: 24px; max-width: 720px; margin: 0 auto; }
+
+.hint { color: var(--dim); font-size: 0.9rem; }
+
+form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--dim); }
+
+input, select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 1rem;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--text);
+}
+button.primary { background: var(--accent); color: #00131a; }
+button.danger { background: var(--error); color: white; }
+
+.error {
+  color: var(--error);
+  background: rgba(255, 61, 107, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+th { color: var(--dim); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+
+tbody tr:first-child td { font-weight: 700; color: var(--success); }
+
+.race-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
