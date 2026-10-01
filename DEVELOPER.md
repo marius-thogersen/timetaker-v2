@@ -109,10 +109,18 @@ $writer.WriteLine('{"time":"2024-01-01T10:00:00.000","code":"0000000001"}')
 
 - **`bootstrap.ps1`** — the single command end users run
   (`irm .../bootstrap.ps1 | iex`). Downloads the `main` branch zip from
-  GitHub, installs to `%USERPROFILE%\Desktop\TimeTaker` (preserving
-  `data/` on re-run/update), runs `install.ps1`, and creates two Desktop
+  GitHub, installs it, runs `install.ps1`, and creates two Desktop
   shortcuts. **The GitHub owner/repo is hardcoded near the top of this file
   and in `README.md`'s install command** — update both if the repo moves.
+  Install location resolves in this order: the `-InstallPath` parameter,
+  then the `TIMETAKER_INSTALL_PATH` environment variable (the only way to
+  override it non-interactively through the piped one-liner), then an
+  interactive `Read-Host` prompt defaulting to `Desktop\TimeTaker`. Installs
+  under `Program Files`/`Program Files (x86)`/the Windows folder are
+  rejected, same reasoning as the original TimeTaker's `ship/install.ps1`:
+  the app stores `data/race.json` next to itself and needs a writable
+  location. Re-running against an existing install path updates everything
+  except `data/`.
 - **`install.ps1`** — idempotent local setup: installs Node.js and Python
   via `winget` if missing, then installs the reader's pip dependencies.
   Safe to re-run.

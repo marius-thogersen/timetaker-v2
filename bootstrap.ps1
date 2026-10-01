@@ -4,18 +4,50 @@
   Run this from PowerShell on the race PC:
     irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/main/bootstrap.ps1 | iex
 
-  It downloads the app, unpacks it to your Desktop, installs Node.js/Python if
-  needed, and adds two Desktop shortcuts to start it.
+  By default it installs to "Desktop\TimeTaker". It downloads the app,
+  installs Node.js/Python if needed, and adds two Desktop shortcuts to start
+  it.
+
+  To choose a different install location, either:
+    - run it with a parameter:
+        .\bootstrap.ps1 -InstallPath "D:\Race\TimeTaker"
+    - or, when using the one-liner above (which can't take parameters
+      directly), set an environment variable first:
+        $env:TIMETAKER_INSTALL_PATH = "D:\Race\TimeTaker"
+        irm https://raw.githubusercontent.com/marius-thogersen/timetaker-v2/main/bootstrap.ps1 | iex
+  If neither is given, you'll be asked where to install (press Enter to
+  accept the default).
 #>
+
+param(
+    [string]$InstallPath
+)
 
 $ErrorActionPreference = 'Stop'
 
 # NOTE: update owner/repo here if this project is pushed under a different
 # GitHub account or repository name.
 $repoZipUrl = 'https://github.com/marius-thogersen/timetaker-v2/archive/refs/heads/main.zip'
-$installRoot = Join-Path $env:USERPROFILE 'Desktop\TimeTaker'
+$defaultInstallRoot = Join-Path $env:USERPROFILE 'Desktop\TimeTaker'
 
 Write-Host '=== TimeTaker v2: download & install ===' -ForegroundColor Yellow
+
+if (-not $InstallPath) { $InstallPath = $env:TIMETAKER_INSTALL_PATH }
+
+if (-not $InstallPath) {
+    $response = Read-Host "Where should TimeTaker be installed? (press Enter for $defaultInstallRoot)"
+    $InstallPath = if ([string]::IsNullOrWhiteSpace($response)) { $defaultInstallRoot } else { $response.Trim() }
+}
+
+# The app stores race results next to itself, so it needs a writable,
+# non-system location.
+$protectedFolders = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:SystemRoot) | Where-Object { $_ }
+if ($protectedFolders | Where-Object { $InstallPath.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }) {
+    throw "TimeTaker can't be installed inside $InstallPath because it stores race results in its own folder. Choose somewhere like Desktop or Documents instead."
+}
+
+$installRoot = $InstallPath
+Write-Host "Installing to $installRoot" -ForegroundColor Cyan
 
 $tempZip = Join-Path $env:TEMP "timetaker-v2-$([Guid]::NewGuid()).zip"
 $tempExtract = Join-Path $env:TEMP "timetaker-v2-$([Guid]::NewGuid())"
