@@ -77,10 +77,20 @@ Get-ChildItem $installRoot -Recurse -File | Unblock-File -ErrorAction SilentlyCo
 Write-Host ''
 Write-Host "Installed to $installRoot" -ForegroundColor Green
 
-# Run install.ps1 bypassing the current user's script execution policy for
-# this process only (most Windows 11 PCs default to Restricted, which would
-# otherwise block running the downloaded .ps1 file directly).
-powershell -NoProfile -ExecutionPolicy Bypass -File "$installRoot\install.ps1"
+# Run install.ps1 by reading its content and piping it through
+# Invoke-Expression, the same trick the one-liner at the top of this file
+# uses. Execution policy only applies to running .ps1 *files*, not to
+# in-memory script text - this is why 'irm ... | iex' works even on PCs
+# where running downloaded .ps1 files is blocked (default-Restricted
+# policy, Group Policy, Smart App Control, etc). Some PCs only block this
+# for Windows PowerShell and not PowerShell 7 (or vice versa); doing it
+# this way works the same in both.
+$installScriptPath = Join-Path $installRoot 'install.ps1'
+$installScriptContent = Get-Content -Raw -LiteralPath $installScriptPath
+# install.ps1 uses $PSScriptRoot to find its own folder, which is empty
+# when run this way - substitute it with the real install folder instead.
+$installScriptContent = $installScriptContent.Replace('$PSScriptRoot', $installRoot)
+Invoke-Expression $installScriptContent
 
 Write-Host ''
 Write-Host 'Adding Desktop shortcuts...' -ForegroundColor Cyan
