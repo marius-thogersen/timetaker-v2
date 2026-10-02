@@ -385,6 +385,19 @@ function resetRace(race) {
   race.pausedIntervals = [];
 }
 
+/** Wipes everything back to a brand new race: no participants, no scans,
+ *  heats back to the two defaults with no start times, race settings back
+ *  to their defaults. A full "start over from scratch" escape hatch — the
+ *  caller is expected to archive the about-to-be-cleared race first (its
+ *  full state, taken *before* calling this), same as `newRaceFromTemplate`,
+ *  so nothing is silently lost. Mutates `race` in place (rather than
+ *  returning a new object) so existing references to it stay valid. */
+function resetToDefaults(race) {
+  const fresh = createRace();
+  Object.keys(race).forEach((key) => delete race[key]);
+  Object.assign(race, fresh);
+}
+
 /** Starts a brand new race using the current (ended) race's heats and
  *  participants as a template — same heat names/start times/durations, same
  *  participants (names/genders/RFID codes/start numbers/heat assignments)
@@ -687,6 +700,7 @@ module.exports = {
   setLapDistance,
   setMinLapSeconds,
   resetRace,
+  resetToDefaults,
   recordScan,
   editScan,
   removeScan,

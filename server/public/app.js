@@ -28,6 +28,9 @@ const endRaceButton = document.getElementById('endRaceButton');
 const newRaceButton = document.getElementById('newRaceButton');
 const actionsMenuButton = document.getElementById('actionsMenuButton');
 const actionsMenu = document.getElementById('actionsMenu');
+const headerMenuButton = document.getElementById('headerMenuButton');
+const headerMenu = document.getElementById('headerMenu');
+const factoryResetButton = document.getElementById('factoryResetButton');
 const raceNotStartedNotice = document.getElementById('raceNotStartedNotice');
 const raceEndedNotice = document.getElementById('raceEndedNotice');
 const liveRaceNotice = document.getElementById('liveRaceNotice');
@@ -606,30 +609,63 @@ startButton.addEventListener('click', async () => {
   }
 });
 
-function closeActionsMenu() {
-  actionsMenu.hidden = true;
-  actionsMenuButton.setAttribute('aria-expanded', 'false');
+// Generic dropdown-menu wiring, shared by the race-actions menu (⋮) and the
+// header menu (☰): clicking the button toggles its menu (closing any other
+// open menu first), clicking anywhere outside a menu's own wrapper closes
+// it, and Escape closes all of them.
+const registeredMenus = [];
+function registerMenu(button, menu) {
+  const wrapper = button.closest('.menu-wrapper');
+  function close() {
+    menu.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+  }
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = !menu.hidden;
+    closeAllMenus();
+    if (!isOpen) {
+      menu.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+    }
+  });
+  registeredMenus.push({ wrapper, menu, close });
+  return close;
 }
 
-actionsMenuButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-  const isOpen = !actionsMenu.hidden;
-  if (isOpen) {
-    closeActionsMenu();
-  } else {
-    actionsMenu.hidden = false;
-    actionsMenuButton.setAttribute('aria-expanded', 'true');
-  }
-});
+function closeAllMenus() {
+  registeredMenus.forEach((m) => m.close());
+}
 
 document.addEventListener('click', (event) => {
-  if (!actionsMenu.hidden && !event.target.closest('.menu-wrapper')) {
-    closeActionsMenu();
-  }
+  registeredMenus.forEach((m) => {
+    if (!m.menu.hidden && !m.wrapper.contains(event.target)) m.close();
+  });
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closeActionsMenu();
+  if (event.key === 'Escape') closeAllMenus();
+});
+
+const closeActionsMenu = registerMenu(actionsMenuButton, actionsMenu);
+registerMenu(headerMenuButton, headerMenu);
+
+factoryResetButton.addEventListener('click', async () => {
+  closeAllMenus();
+  if (
+    !confirm(
+      'Reset EVERYTHING? This removes all participants, heats, and times, and archives the current race into Race History first so nothing is lost. This cannot be undone from here.'
+    )
+  ) {
+    return;
+  }
+  try {
+    await api('/api/race/factory-reset', { method: 'POST' });
+    await refreshState();
+    setPage('signup');
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
 resetButton.addEventListener('click', async () => {

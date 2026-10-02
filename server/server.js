@@ -311,6 +311,19 @@ const httpServer = http.createServer(async (req, res) => {
       return sendJson(res, 200, publicState());
     }
 
+    if (url.pathname === '/api/race/factory-reset' && req.method === 'POST') {
+      // Always archive the current race first (whatever its status), so a
+      // full reset can never silently lose data — same safety net as
+      // "New race from this template".
+      const snapshot = JSON.parse(JSON.stringify(state));
+      const label = `Reset — ${formatArchiveLabel(new Date())}`;
+      store.addArchive(label, snapshot);
+      race.resetToDefaults(state);
+      lastScanReceivedAt = null;
+      persist();
+      return sendJson(res, 200, publicState());
+    }
+
     if (url.pathname === '/api/export/leaderboard.json' && req.method === 'GET') {
       return sendJsonDownload(res, 'leaderboard.json', race.getLeaderboard(state));
     }

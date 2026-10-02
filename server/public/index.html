@@ -12,18 +12,29 @@
     <h1>TimeTaker</h1>
     <span id="statusPill" class="pill">Signup</span>
     <span class="spacer"></span>
-    <button id="raceHistoryButton" type="button" class="header-button">📜 Race history</button>
-    <label class="wake-lock-toggle">
-      <span class="wake-lock-label">Keep screen awake</span>
-      <span class="switch">
-        <input type="checkbox" id="wakeLockToggle" />
-        <span class="switch-track"><span class="switch-thumb"></span></span>
-      </span>
-    </label>
-    <select id="themeSelect" class="theme-select" aria-label="Choose a color theme">
-      <option value="dark">🌙 Dark</option>
-      <option value="light">☀️ Light</option>
-    </select>
+    <div class="menu-wrapper">
+      <button id="headerMenuButton" type="button" class="icon-button" aria-haspopup="true" aria-expanded="false">☰</button>
+      <div id="headerMenu" class="actions-menu" hidden>
+        <button id="raceHistoryButton" type="button" class="menu-item">📜 Race history</button>
+        <div class="menu-divider"></div>
+        <label class="wake-lock-toggle menu-item">
+          <span class="wake-lock-label">Keep screen awake</span>
+          <span class="switch">
+            <input type="checkbox" id="wakeLockToggle" />
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+          </span>
+        </label>
+        <label class="menu-item theme-row">
+          <span>Theme</span>
+          <select id="themeSelect" aria-label="Choose a color theme">
+            <option value="dark">🌙 Dark</option>
+            <option value="light">☀️ Light</option>
+          </select>
+        </label>
+        <div class="menu-divider"></div>
+        <button id="factoryResetButton" type="button" class="menu-item danger-text">↺ Reset everything…</button>
+      </div>
+    </div>
   </header>
 
   <nav class="tabbar">

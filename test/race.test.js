@@ -22,6 +22,7 @@ const {
   setLapDistance,
   setMinLapSeconds,
   resetRace,
+  resetToDefaults,
   recordScan,
   editScan,
   removeScan,
@@ -267,6 +268,26 @@ test('resetRace clears scans/rounds back to zero but keeps participants, heats a
   assert.equal(race.lapDistanceMeters, 400);
   assert.equal(race.minLapSeconds, 10);
   assert.equal(getLeaderboard(race).find((r) => r.id === ada.id).rounds, 0);
+});
+
+test('resetToDefaults wipes participants, heats, scans and settings back to a brand new race', () => {
+  const race = createRace();
+  addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  addHeat(race, 'Kids');
+  setLapDistance(race, 400);
+  setMinLapSeconds(race, 10);
+  startRace(race);
+  recordScan(race, { code: '0000000001' });
+
+  resetToDefaults(race);
+  assert.equal(race.status, 'signup');
+  assert.equal(race.participants.length, 0);
+  assert.equal(race.scans.length, 0);
+  assert.equal(race.heats.length, 2);
+  assert.equal(race.heats[0].name, 'Heat 1');
+  assert.equal(race.heats[1].name, 'Heat 2');
+  assert.equal(race.lapDistanceMeters, null);
+  assert.equal(race.minLapSeconds, 5);
 });
 
 test('recordScan stores every scan, even before start or for an unknown code', () => {
