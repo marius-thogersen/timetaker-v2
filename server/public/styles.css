@@ -100,19 +100,20 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 }
 
 /* Inside the header's dropdown menu, the wake-lock toggle and theme picker
-   are a single compact row each: just an icon and the switch, pinned to
-   opposite ends — no label text to wrap or crowd the row. */
+   are a single compact row each: a short one-word label and the switch,
+   pinned to opposite ends. flex-wrap: nowrap guarantees they can never
+   break onto a second line no matter how narrow the menu gets. */
 .menu-item.wake-lock-toggle,
 .menu-item.theme-row {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   cursor: pointer;
 }
-.menu-icon {
-  font-size: 1.1rem;
-  line-height: 1;
+.menu-label {
+  white-space: nowrap;
 }
 
 .menu-divider {
