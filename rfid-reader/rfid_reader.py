@@ -4,12 +4,20 @@ import queue
 import select
 import socket
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import time
 import sys
 import os
 import json
 import tkinter as tk
 from tkinter import messagebox
+
+# All scan timestamps sent to TimeTaker are tagged with this timezone (with a
+# UTC offset, e.g. +02:00/+01:00 depending on daylight saving), so the server
+# can always interpret them unambiguously regardless of what timezone the
+# reader PC's clock/locale is set to. Change this if the reader runs outside
+# Denmark.
+LOCAL_TZ = ZoneInfo("Europe/Copenhagen")
 
 def get_app_dir():
     if getattr(sys, 'frozen', False):
@@ -485,7 +493,7 @@ def is_code_complete(code_arr):
 def submit_input(code_arr):
     code_str = "".join(code_arr)
     log_event(f"Registering code: {code_str}")
-    payload = {"time": datetime.now().isoformat(timespec="milliseconds"), "code": code_str}
+    payload = {"time": datetime.now(LOCAL_TZ).isoformat(timespec="milliseconds"), "code": code_str}
 
     if sender:
         sender.submit(payload)

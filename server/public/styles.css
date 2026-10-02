@@ -5,9 +5,36 @@
   --border: #1e1e35;
   --accent: #00d4ff;
   --success: #00ff99;
+  --warning: #ffb020;
   --error: #ff3d6b;
   --text: #dcdcf0;
   --dim: #7777a0;
+
+  /* Spacing scale — every margin/gap/padding below is one of these,
+     so vertical rhythm and alignment stay consistent across the app. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f5f6fb;
+  --panel: #ffffff;
+  --border: #dcdfeb;
+  --accent: #0077a3;
+  --success: #0a8f5b;
+  --warning: #9a6400;
+  --error: #c7294f;
+  --text: #1a1a2e;
+  --dim: #6b6b85;
 }
 
 * { box-sizing: border-box; }
@@ -17,94 +44,540 @@ body {
   font-family: "Segoe UI", system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
+
+/* ---------- Header & global chrome ---------- */
+
+/* Thin ambient bar across the very top of the page: green while the race is
+   live, amber while paused, invisible during signup — a glanceable status
+   indicator that doesn't depend on which tab is open. */
+.status-bar {
+  height: 4px;
+  width: 100%;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+.status-bar.started { background: var(--success); }
+.status-bar.stopped { background: var(--warning); }
+.status-bar.ended { background: var(--dim); }
 
 header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
   border-bottom: 1px solid var(--border);
 }
 
-h1 { margin: 0; color: var(--accent); font-size: 1.4rem; }
+h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+
+.spacer { flex: 1; }
+
+#themeToggle {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .pill {
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
   background: var(--panel);
   border: 1px solid var(--border);
   font-size: 0.8rem;
   color: var(--dim);
 }
 .pill.started { color: var(--success); border-color: var(--success); }
+.pill.stopped { color: var(--warning); border-color: var(--warning); }
+.pill.ended { color: var(--dim); border-color: var(--dim); }
 
-main { padding: 24px; max-width: 720px; margin: 0 auto; }
-
-.hint { color: var(--dim); font-size: 0.9rem; }
-
-form {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  margin: 16px 0;
-  padding: 16px;
+.header-button {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--dim); }
-
-input, select {
-  background: var(--bg);
-  border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 4px;
-  padding: 8px 10px;
-  font-size: 1rem;
-}
-
-button {
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.85rem;
   cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 16px;
-  font-weight: 600;
-  background: var(--border);
-  color: var(--text);
 }
-button.primary { background: var(--accent); color: #00131a; }
-button.danger { background: var(--error); color: white; }
+.header-button:hover { background: var(--border); }
+
+/* Slide toggle for the optional "keep screen awake" setting. A plain
+   checkbox visually styled as a track + thumb; the real <input> is kept in
+   the DOM (just visually hidden) so it stays keyboard/focus accessible. */
+.wake-lock-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wake-lock-label {
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(16px);
+  background: #0b0b12;
+}
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabbar {
+  display: flex;
+  gap: var(--space-1);
+  padding: 0 var(--space-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: var(--space-3) var(--space-4);
+  font-weight: 600;
+  color: var(--dim);
+}
+.tab-button:hover { color: var(--text); }
+.tab-button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+main {
+  padding: var(--space-6);
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+main h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.2rem;
+}
+
+/* ---------- Typography helpers ---------- */
+
+.hint { color: var(--dim); font-size: 0.88rem; margin: var(--space-2) 0 var(--space-4); }
+
+/* Small hoverable "info" marker for explanatory text that would otherwise
+   clutter the page as a permanent paragraph — the full text lives in the
+   title attribute (native tooltip on hover/focus). */
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--dim);
+  color: var(--dim);
+  font-size: 0.7rem;
+  font-style: normal;
+  cursor: help;
+  vertical-align: middle;
+}
+.info-icon:hover, .info-icon:focus {
+  color: var(--text);
+  border-color: var(--text);
+  outline: none;
+}
+
+.notice {
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9rem;
+  margin: 0 0 var(--space-4);
+}
 
 .error {
   color: var(--error);
   background: rgba(255, 61, 107, 0.1);
   border: 1px solid var(--error);
-  border-radius: 4px;
-  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-4);
 }
+
+/* ---------- Form controls ---------- */
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+input, select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  width: 100%;
+}
+
+input:focus, select:focus, button:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: var(--border);
+  color: var(--text);
+}
+button.primary { background: var(--accent); color: #00131a; }
+button.danger { background: var(--error); color: white; }
+button.secondary { background: none; border: 1px solid var(--border); color: var(--text); }
+button.large { padding: 14px 32px; font-size: 1.05rem; }
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Plain-text underline buttons used inline (e.g. "now", "clear end time"). */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--dim);
+  font-size: 0.78rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  text-decoration: underline;
+  white-space: nowrap;
+  width: auto;
+}
+.link-button:hover { color: var(--text); }
+
+/* Generic form: a single row of fields with labels stacked above inputs,
+   always bottom-aligned with its submit button. Used by the signup form. */
+form {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.field { flex: 1 1 140px; }
+.field--name { flex: 1 1 200px; }
+.field--rfid { flex: 1 1 180px; }
+.field--gender, .field--heat { flex: 1 1 150px; }
+
+.inline-form {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+/* ---------- Cards (settings, heats, participant detail) ---------- */
+
+.settings-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin: 0 0 var(--space-5);
+  background: var(--panel);
+}
+
+.settings-card legend {
+  padding: 0 var(--space-2);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.settings-card form {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+#raceSettingsFeedback { margin: var(--space-3) 0 0; }
+
+.lap-distance-field { max-width: 220px; margin: 0; }
+
+.settings-row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 0 0 var(--space-2);
+}
+
+.race-date-field { max-width: 200px; margin: 0 0 var(--space-4); }
+
+#heatsList {
+  margin-bottom: var(--space-3);
+}
+
+/* ---------- Tables (shared by heats, participants, leaderboard, history) ---------- */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 16px 0;
+  margin: 0 0 var(--space-4);
 }
 
 th, td {
   text-align: left;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
-th { color: var(--dim); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+th {
+  color: var(--dim);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
 
-tbody tr:first-child td { font-weight: 700; color: var(--success); }
+td.numeric { text-align: right; }
+
+tbody tr:first-child td { font-weight: 700; color: var(--text); }
+tbody tr.empty-row td { color: var(--dim); font-weight: 400; }
+
+/* A compact inline group inside a table cell, e.g. a time input plus a
+   small "now"/"clear" link button sitting on the same line. */
+.cell-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cell-inline input { width: auto; }
+.heat-duration-hours, .heat-duration-minutes { width: 54px; }
+
+.start-number-input { width: 64px; }
+.rfid-code-input { width: 100%; max-width: 220px; }
+
+.heats-table { margin: 0 0 var(--space-4); }
+.heats-table .heat-name { font-weight: 700; }
+.heats-table td:last-child { text-align: right; }
+
+.heat-remove-button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-weight: 400;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+}
+.heat-remove-button:hover:not(:disabled) { color: var(--error); border-color: var(--error); }
+
+.heat-group { margin: var(--space-5) 0; }
+
+.heat-group-title {
+  font-size: 1rem;
+  color: var(--accent);
+  margin: 0 0 var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.heat-group-title .heat-start-note {
+  color: var(--dim);
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* ---------- Start-race call to action ---------- */
+
+.start-race-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 var(--space-4);
+  text-align: center;
+}
+
+/* ---------- Race view toolbar + menu ---------- */
 
 .race-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
+
+.log-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.log-filter {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  text-transform: none;
+}
+.log-filter select { width: auto; padding: var(--space-2) var(--space-3); font-size: 0.85rem; }
+
+.participant-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 400;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge.counted { color: var(--success); border: 1px solid var(--success); }
+.badge.excluded { color: var(--dim); border: 1px solid var(--border); }
+
+.menu-wrapper { position: relative; }
+
+.icon-button {
+  background: none;
+  border: none;
+  color: var(--dim);
+  border-radius: var(--radius-pill);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.icon-button:hover,
+.icon-button[aria-expanded="true"] {
+  background: var(--panel-hover, rgba(128, 128, 128, 0.15));
+  color: var(--text);
+}
+
+.actions-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  min-width: 170px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 400;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.menu-item:hover { background: var(--border); }
+.menu-item.danger-text { color: var(--error); }

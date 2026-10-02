@@ -21,8 +21,13 @@ rfid-reader/rfid_reader.py  --(TCP 127.0.0.1:45677, line-delimited JSON)-->  ser
   leaderboard, race status). Pure functions operating on a plain state
   object. No I/O. This is the file to change when the *rules* of the race
   change.
-- **`server/domain/store.js`** — loads/saves that state object as
-  `data/race.json`. Atomic write (write to `.tmp`, then rename).
+- **`server/domain/sqlite-store.js`** — loads/saves that state object using
+  Node's built-in `node:sqlite` module, as `data/race.db`. Normalized tables
+  (`participants`, `scans`, `paused_intervals`, `race_meta`) so the file is
+  easy to open and query directly with any SQLite browser, but the app itself
+  still reads the whole race into memory and rewrites it wholesale on every
+  change (same simple pattern the old JSON-file store used — just backed by
+  SQLite now). Requires Node.js 22.5+ (ships with `node:sqlite` built in).
 - **`server/server.js`** — wires it together: a `net.Server` for RFID scans
   and an `http.Server` for the API + static frontend. No frameworks, no
   external npm packages — deliberately, so `npm install` is never a step a
@@ -40,7 +45,7 @@ rfid-reader/rfid_reader.py  --(TCP 127.0.0.1:45677, line-delimited JSON)-->  ser
 
 Client (reader) → server, one JSON object per line:
 ```json
-{"time": "2024-01-01T10:00:00.000", "code": "0123456789"}
+{"time": "2026-10-02T11:42:05.955+02:00", "code": "0123456789"}
 ```
 
 Server → client, one JSON object per line, always sent as a reply to each
@@ -56,10 +61,41 @@ prevents scans from ever being silently lost. Matching a code to a
 participant, and deciding whether it counts as a new lap, happens later in
 `getLeaderboard()`.
 
+### Timezone handling (important)
+
+Every timestamp this app compares (heat start times, paused intervals, scan
+times) is stored as a real UTC `...Z` ISO string (`new Date().toISOString()`),
+and eligibility checks compare these as plain strings — so any timestamp fed
+into the system **must** carry an explicit UTC offset, or it will silently
+compare wrong against everything else (this caused a real bug: a scan during
+a pause wasn't recognized as paused because the reader's timestamp had no
+timezone and was being compared, as a string, against a UTC one).
+
+- **`rfid_reader.py`** sends `datetime.now(LOCAL_TZ).isoformat(...)` where
+  `LOCAL_TZ = ZoneInfo("Europe/Copenhagen")` — this always includes a UTC
+  offset (`+02:00` summer / `+01:00` winter, DST handled automatically by
+  `zoneinfo`). **If a reader PC is ever used outside Denmark, change
+  `LOCAL_TZ` at the top of `rfid_reader.py` to the correct IANA zone name**
+  (e.g. `"Europe/London"`), or scans will be timestamped with the wrong
+  offset even though they'll still be internally consistent.
+- `zoneinfo` needs the `tzdata` package on Windows (Windows doesn't ship the
+  IANA timezone database the way Linux/macOS do) — it's listed in
+  `rfid-reader/requirements.txt` and installed by `install.ps1`.
+- **`server/domain/race.js`**'s `recordScan()` and `editScan()` both
+  defensively re-normalize *any* incoming timestamp via
+  `new Date(x).toISOString()` before storing it, converting it to UTC
+  regardless of what offset (or lack thereof) it arrived with. This means a
+  timezone-less timestamp is interpreted as the **server PC's own local
+  time** (JS `Date` parsing behavior) — correct only if the reader and
+  server happen to share a clock/timezone, which is why the reader should
+  always send an explicit offset rather than relying on this fallback.
+
 ## Domain rules (current)
 
-- One race at a time; state machine is `signup -> started` (one-way, reset
-  via `resetRace` returns to a fresh `signup`).
+- One race at a time; state machine is
+  `signup -> started <-> stopped -> ended`, with `ended` resumable back to
+  `started` (unusual, but not hard-locked — see "Ending a race" below).
+  `resetRace`/`newRaceFromTemplate` both return to a fresh `signup`.
 - A participant is `{ id, name, gender, rfidCode }`. `rfidCode` must be
   unique. `gender` must be one of `GENDERS` (`female`, `male`, `other`).
 - Adding/removing participants is only allowed in `signup` status.
@@ -72,11 +108,37 @@ participant, and deciding whether it counts as a new lap, happens later in
 - Leaderboard sort: rounds desc, then earliest `lastLapAt` (whoever reached
   that lap count first ranks higher), then name.
 
+### Ending a race, exporting, and starting a new one from a template
+
+- `endRace(race)` (allowed from `started` or `stopped`) sets status to
+  `ended` and reuses the same `pausedIntervals` mechanism `stopRace` uses
+  (pushes an open interval if the race was still running) — so scans
+  received after ending never count, exactly like scans during a pause.
+  Nothing is deleted; the race is just frozen.
+- `resumeRace(race)` now also accepts `ended` (not just `stopped`), so
+  clicking "End race" by mistake is recoverable.
+- `GET /api/export/leaderboard.json` / `.csv` export the *live* race's
+  current leaderboard (most useful once it's ended, but works any time).
+- `POST /api/race/new-from-template` is only allowed when status is `ended`.
+  It (1) deep-clones the current race state, (2) archives that clone into
+  the `race_archive` SQLite table via `store.addArchive()` — label is an
+  auto-generated local date/time string, e.g. "2026-10-02 14:30" — then
+  (3) calls `newRaceFromTemplate(state)`, which is just `resetRace` gated on
+  `status === 'ended'`. Heats (including start times/durations) and
+  participants (names/genders/RFID codes/start numbers/heat assignments)
+  all carry over untouched; only scans/paused-intervals/status are cleared.
+- Archived races are listed via `GET /api/archive` (id/label/archivedAt/
+  participantCount only — cheap, no JSON parsing) and viewed/exported via
+  `GET /api/archive/:id/leaderboard`, `/export.json`, `/export.csv` — each
+  parses that one archive's full JSON blob out of the `data` column.
+- CSV shaping lives in `server/domain/csv.js` (`leaderboardToCsv`) — ranks
+  reset per heat, matching the order `getLeaderboard()` already returns.
+
 ## Running locally
 
 ```powershell
-node --test test/race.test.js   # domain unit tests (no deps, uses node:test)
-node server\server.js           # run the server; Ctrl+C to stop
+node --test test/race.test.js test/csv.test.js   # domain unit tests (no deps, uses node:test)
+node server\server.js                            # run the server; Ctrl+C to stop
 ```
 
 There is no `npm install` step for the server — it has zero dependencies by
@@ -99,8 +161,13 @@ $writer.WriteLine('{"time":"2024-01-01T10:00:00.000","code":"0000000001"}')
 
 ## Data files
 
-- `data/race.json` — the entire race. Safe to delete between events; the
-  server recreates it on next write.
+- `data/race.db` — a real SQLite database (via Node's built-in
+  `node:sqlite`), holding the live race (`race_meta`/`heats`/`participants`/
+  `scans`/`paused_intervals` tables) plus any archived ended races
+  (`race_archive`, one row per archived race, storing a full JSON snapshot).
+  Safe to delete between events; the server recreates it with a fresh race
+  on next start (this also wipes race history — back the file up first if
+  you want to keep it).
 - `rfid-reader/pending_scans.json` — scans the reader captured but couldn't
   yet deliver (server offline); it retries on reconnect and self-clears.
 - `rfid-reader/app.log` — reader's own log when running as a frozen `.exe`.
@@ -136,13 +203,16 @@ technical background.
 
 ## Testing checklist before shipping a change
 
-1. `node --test test/race.test.js` passes.
+1. `node --test test/race.test.js test/csv.test.js` passes.
 2. Manually: start `server.js`, drive `/api/participants`, `/api/race/start`,
    `/api/race/reset` with `Invoke-RestMethod`, and a raw TCP line to
    `45677`, and confirm `/api/leaderboard` looks right.
 3. Load `http://127.0.0.1:4577` in a browser and click through signup →
    start → leaderboard → reset.
-4. If you touched `bootstrap.ps1` or `install.ps1`, run them on a throwaway
+4. If you touched the end-race/export/race-history/new-race flow: end a
+   race, export JSON/CSV, open Race History, click "New race from this
+   template…", and confirm heats/participants survived while scans reset.
+5. If you touched `bootstrap.ps1` or `install.ps1`, run them on a throwaway
    folder/account to confirm they still complete without manual fixes.
 
 ## Not implemented yet (known gaps)

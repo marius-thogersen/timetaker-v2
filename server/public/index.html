@@ -7,22 +7,73 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <div id="statusBar" class="status-bar"></div>
   <header>
     <h1>TimeTaker</h1>
     <span id="statusPill" class="pill">Signup</span>
+    <span class="spacer"></span>
+    <button id="raceHistoryButton" type="button" class="header-button" title="View past ended races, their final results, and export them">📜 Race history</button>
+    <label class="wake-lock-toggle" title="Keep this screen awake while the page is open (useful for unattended races)">
+      <span class="wake-lock-label">Keep screen awake</span>
+      <span class="switch">
+        <input type="checkbox" id="wakeLockToggle" />
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </span>
+    </label>
+    <button id="themeToggle" type="button" title="Switch between light and dark mode" aria-label="Toggle light/dark mode">🌙</button>
   </header>
+
+  <nav class="tabbar">
+    <button id="navSignupButton" type="button" class="tab-button">👥 Signup</button>
+    <button id="navRaceButton" type="button" class="tab-button">🏁 Race</button>
+    <button id="navLogButton" type="button" class="tab-button">📋 Log</button>
+  </nav>
 
   <main>
     <section id="signupView">
-      <h2>Sign up participants</h2>
-      <p class="hint">Focus the RFID field and scan a chip — it types the code and submits automatically.</p>
+      <h2>Sign up participants <span class="info-icon" tabindex="0" title="Focus the RFID field and scan a chip — it types the code and submits automatically.">ⓘ</span></h2>
+      <p id="liveRaceNotice" class="notice" hidden>⏱ Race is live — switch to the Race tab to watch the leaderboard, or stop the race to add or remove participants.</p>
+
+      <fieldset id="raceSettingsCard" class="settings-card">
+        <legend>Race settings</legend>
+        <div class="settings-row">
+          <label class="lap-distance-field">
+            Lap distance (meters)
+            <input type="number" id="lapDistanceInput" min="1" step="1" placeholder="e.g. 400" />
+          </label>
+          <label class="lap-distance-field">
+            Minimum lap time (mm:ss) <span class="info-icon" tabindex="0" title="Two scans of the same chip closer together than this are treated as one lap — raise it if riders sometimes trigger a double scan.">ⓘ</span>
+            <span class="cell-inline">
+              <input type="number" id="minLapMinutesInput" min="0" step="1" placeholder="0" style="width:54px" /> m
+              <input type="number" id="minLapSecondsOnlyInput" min="0" max="59" step="1" placeholder="5" style="width:54px" /> s
+            </span>
+          </label>
+        </div>
+        <p id="raceSettingsFeedback" class="hint" hidden></p>
+      </fieldset>
+
+      <fieldset id="heatsCard" class="settings-card">
+        <legend>Heats (start groups) <span class="info-icon" tabindex="0" title="Heats share one race date, each with its own start time (and an optional duration), so groups can start at different times but still share one leaderboard. Scans outside a heat's window aren't counted for its participants.">ⓘ</span></legend>
+        <label class="race-date-field">
+          Race date
+          <input type="date" id="raceDateInput" />
+        </label>
+        <div id="heatsList"></div>
+        <form id="addHeatForm" class="inline-form">
+          <label>
+            New heat name
+            <input type="text" id="newHeatNameInput" autocomplete="off" placeholder="e.g. Heat 2" />
+          </label>
+          <button type="submit">+ Add heat</button>
+        </form>
+      </fieldset>
 
       <form id="signupForm">
-        <label>
+        <label class="field field--name">
           Name
           <input type="text" id="nameInput" autocomplete="off" required />
         </label>
-        <label>
+        <label class="field field--gender">
           Gender
           <select id="genderInput">
             <option value="female">Female</option>
@@ -30,32 +81,92 @@
             <option value="other" selected>Other / unspecified</option>
           </select>
         </label>
-        <label>
+        <label class="field field--rfid">
           RFID code
-          <input type="text" id="rfidInput" autocomplete="off" required />
+          <input type="text" id="rfidInput" autocomplete="off" placeholder="optional — add later" />
         </label>
-        <button type="submit">Add participant</button>
+        <label class="field field--heat">
+          Heat
+          <select id="signupHeatInput"></select>
+        </label>
+        <button type="submit" class="primary">Add participant</button>
       </form>
       <p id="signupError" class="error" hidden></p>
 
-      <table id="participantsTable">
+      <div id="participantsByHeat"></div>
+
+      <div class="start-race-row">
+        <button id="startButton" class="primary large">Start race</button>
+        <p id="startHint" class="hint" hidden>Add at least one participant to start the race.</p>
+      </div>
+    </section>
+
+    <section id="raceView" hidden>
+      <p id="raceNotStartedNotice" class="hint" hidden>Race hasn't started yet — add participants on the Signup tab and press "Start race".</p>
+      <p id="raceEndedNotice" class="notice" hidden>🏁 Race has ended — data is frozen for export. Resume it to keep going, or start a new race from this one via the menu.</p>
+      <div class="race-toolbar">
+        <span class="spacer"></span>
+        <div class="menu-wrapper">
+          <button id="actionsMenuButton" type="button" class="icon-button" title="Race actions" aria-haspopup="true" aria-expanded="false">⋮</button>
+          <div id="actionsMenu" class="actions-menu" hidden>
+            <button id="stopResumeButton" type="button" class="menu-item">Stop race</button>
+            <button id="endRaceButton" type="button" class="menu-item danger-text">End race…</button>
+            <button id="newRaceButton" type="button" class="menu-item">New race from this template…</button>
+            <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export leaderboard (JSON)</a>
+            <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export leaderboard (CSV)</a>
+            <button id="resetButton" type="button" class="menu-item danger-text">Reset rounds…</button>
+          </div>
+        </div>
+      </div>
+      <div id="leaderboardByHeat"></div>
+    </section>
+
+    <section id="raceHistoryView" hidden>
+      <h2>Race history</h2>
+      <p id="raceHistoryEmpty" class="hint" hidden>No past races yet — use "New race from this template…" (available once a race has ended) to archive one here.</p>
+      <table id="archiveTable">
         <thead>
-          <tr><th>Name</th><th>Gender</th><th>RFID code</th><th></th></tr>
+          <tr><th>Ended</th><th>Participants</th><th></th></tr>
         </thead>
         <tbody></tbody>
       </table>
 
-      <button id="startButton" class="primary">Start race</button>
+      <div id="archiveDetailCard" class="settings-card" hidden>
+        <div class="race-toolbar">
+          <h3 id="archiveDetailTitle" class="log-title"></h3>
+          <span class="spacer"></span>
+          <a id="archiveExportJsonLink" class="menu-item" href="#">⬇ JSON</a>
+          <a id="archiveExportCsvLink" class="menu-item" href="#">⬇ CSV</a>
+        </div>
+        <table id="archiveLeaderboardTable">
+          <thead>
+            <tr><th>Rank</th><th>Bib</th><th>Name</th><th>Heat</th><th>Rounds</th><th>Distance</th><th>Last lap</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
-    <section id="raceView" hidden>
+    <section id="logView" hidden>
       <div class="race-toolbar">
-        <span id="scanInfo" class="hint"></span>
-        <button id="resetButton" class="danger">Reset race</button>
+        <h2 class="log-title">Scan log</h2>
+        <label class="log-filter">
+          Participant
+          <select id="logParticipantFilter">
+            <option value="">All participants</option>
+          </select>
+        </label>
       </div>
-      <table id="leaderboardTable">
+
+      <div id="participantDetailCard" class="settings-card" hidden>
+        <h3 id="participantDetailName"></h3>
+        <p id="participantDetailMeta" class="hint"></p>
+        <p id="participantDetailStats" class="hint"></p>
+      </div>
+
+      <table id="logTable">
         <thead>
-          <tr><th>#</th><th>Name</th><th>Gender</th><th>Rounds</th><th>Last lap</th></tr>
+          <tr><th>Time</th><th>Participant</th><th>Code</th><th>Counted</th><th>Reason</th><th></th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -63,5 +174,6 @@
   </main>
 
   <script src="/app.js"></script>
+  <script src="/wakelock.js"></script>
 </body>
 </html>

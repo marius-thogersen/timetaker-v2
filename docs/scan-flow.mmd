@@ -1,0 +1,31 @@
+flowchart TD
+    A[Reader sends a scan: code + timestamp] --> B[Always stored in raw scan log<br/>— nothing is ever dropped]
+    B --> C{Does the code match<br/>a current participant?}
+
+    C -- no --> D[Reason: unknown_code<br/>shown in history, never counts]
+    D --> D2{Later, a participant is<br/>added/edited with this code?}
+    D2 -- yes --> C
+    D2 -- no --> D3[Stays unknown_code forever]
+
+    C -- yes --> E0{Was this code already<br/>assigned to this participant<br/>at the time of the scan?<br/>scan.time >= participant.rfidAssignedAt}
+    E0 -- no --> F0[Reason: code_assigned_after_scan<br/>NEVER counts — matching is not retroactive]
+    E0 -- yes --> E{"Is the race currently started/<br/>stopped/ended (i.e. NOT in signup)?<br/>(heat.startAt alone isn't enough —<br/>Reset rounds deliberately keeps it<br/>for next time)"}
+    E -- "no (still signup)" --> F[Reason: race_not_started<br/>NEVER counts, no matter the code match]
+    E -- yes --> G{scan.time >= heat.startAt ?}
+    G -- no --> H[Reason: before_start<br/>e.g. scan happened before Start was pressed]
+    G -- yes --> I{Heat has a duration set<br/>AND scan.time >= heatEndAt ?}
+    I -- yes --> J[Reason: after_end]
+    I -- no --> K{Is scan.time inside<br/>a paused interval?}
+    K -- yes --> L[Reason: paused]
+    K -- no --> M{"Time since this participant's<br/>last COUNTED lap >= minLapSeconds?<br/>(or this is their first eligible scan)"}
+    M -- no --> N[Reason: bounce<br/>collapsed into previous lap, doesn't reset it]
+    M -- yes --> O[✅ Counts as a new lap<br/>→ leaderboard rounds +1]
+
+    style F fill:#552222,color:#fff
+    style F0 fill:#552222,color:#fff
+    style H fill:#552222,color:#fff
+    style J fill:#552222,color:#fff
+    style L fill:#552222,color:#fff
+    style N fill:#554422,color:#fff
+    style O fill:#225533,color:#fff
+    style D fill:#333,color:#fff

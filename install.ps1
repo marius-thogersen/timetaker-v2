@@ -27,8 +27,26 @@ function Install-WithWinget {
 Write-Host '=== TimeTaker v2: setup ===' -ForegroundColor Yellow
 
 # --- Node.js (runs server\server.js, no external packages needed) ----------
+# TimeTaker v2 uses Node's built-in node:sqlite module, which needs Node 22.5+.
+$MIN_NODE_MAJOR = 22
+
+function Get-NodeMajorVersion {
+    try {
+        $versionString = (node --version) -replace '^v', ''
+        return [int]($versionString -split '\.')[0]
+    } catch {
+        return 0
+    }
+}
+
 if (Test-Command 'node') {
-    Write-Host "Node.js found: $(node --version)" -ForegroundColor Green
+    $nodeMajor = Get-NodeMajorVersion
+    if ($nodeMajor -ge $MIN_NODE_MAJOR) {
+        Write-Host "Node.js found: $(node --version)" -ForegroundColor Green
+    } else {
+        Write-Host "Node.js found ($(node --version)) but it's older than required (v$MIN_NODE_MAJOR+). Upgrading..." -ForegroundColor Yellow
+        Install-WithWinget -Id 'OpenJS.NodeJS.LTS' -FriendlyName 'Node.js'
+    }
 } else {
     Install-WithWinget -Id 'OpenJS.NodeJS.LTS' -FriendlyName 'Node.js'
 }

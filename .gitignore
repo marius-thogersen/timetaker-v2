@@ -1,4 +1,6 @@
 data/race.json
+data/race.db
+data/race.db-*
 data/*.tmp
 node_modules/
 rfid-reader/__pycache__/
