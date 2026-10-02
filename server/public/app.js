@@ -166,17 +166,17 @@ function populateRaceDateInput(heats) {
   raceDateInput.value = withStart ? dateValueOf(withStart.startAt) : todayDateValue();
 }
 
-// One management row per heat: name, an auto-saving time-of-day input
-// (sharing the single race date above), and a remove button (disabled
-// while it still has participants, or if it's the only heat left).
-// Rendered as a table so every heat's fields line up in neat columns,
-// same as the participant/leaderboard tables elsewhere.
+// One management row per heat: an auto-saving name input, an auto-saving
+// time-of-day input (sharing the single race date above), and a remove
+// button (disabled while it still has participants, or if it's the only
+// heat left). Rendered as a table so every heat's fields line up in neat
+// columns, same as the participant/leaderboard tables elsewhere.
 function renderHeatsList(heats) {
   // Only skip re-rendering while the user is actively typing into a field —
   // buttons (e.g. "Remove") shouldn't block the list from refreshing after
   // they're clicked.
   const active = document.activeElement;
-  const editableClasses = ['heat-time-input'];
+  const editableClasses = ['heat-name-input', 'heat-time-input'];
   if (active && active.classList && editableClasses.some((c) => active.classList.contains(c))) return;
 
   const rowsHtml = heats
@@ -185,7 +185,7 @@ function renderHeatsList(heats) {
       const canRemove = heats.length > 1 && participantCount === 0;
       return `
         <tr>
-          <td class="heat-name">${escapeHtml(heat.name)}</td>
+          <td><input type="text" class="heat-name-input" data-heat-id="${heat.id}" value="${escapeHtml(heat.name)}" /></td>
           <td>
             <span class="cell-inline">
               <input type="time" class="heat-time-input" data-heat-id="${heat.id}" value="${heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME}" />
@@ -681,7 +681,6 @@ newRaceFromHistoryButton.addEventListener('click', startNewRaceFromTemplate);
 
 addHeatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!newHeatNameInput.value.trim()) return;
   try {
     await api('/api/heats', {
       method: 'POST',
@@ -713,6 +712,19 @@ raceDateInput.addEventListener('change', async () => {
 });
 
 heatsList.addEventListener('change', async (event) => {
+  const nameInput = event.target.closest('.heat-name-input');
+  if (nameInput) {
+    try {
+      await api(`/api/heats/${nameInput.dataset.heatId}/name`, {
+        method: 'POST',
+        body: JSON.stringify({ name: nameInput.value.trim() }),
+      });
+      await refreshState();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
   const timeInput = event.target.closest('.heat-time-input');
   if (timeInput) {
     if (!timeInput.value) return;

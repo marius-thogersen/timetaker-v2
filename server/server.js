@@ -374,6 +374,14 @@ const httpServer = http.createServer(async (req, res) => {
       return sendJson(res, 200, publicState());
     }
 
+    const heatNameMatch = url.pathname.match(/^\/api\/heats\/(\d+)\/name$/);
+    if (heatNameMatch && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      race.renameHeat(state, Number(heatNameMatch[1]), body.name);
+      persist();
+      return sendJson(res, 200, publicState());
+    }
+
     const heatDurationMatch = url.pathname.match(/^\/api\/heats\/(\d+)\/duration$/);
     if (heatDurationMatch && req.method === 'POST') {
       const body = await readJsonBody(req);

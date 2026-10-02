@@ -27,13 +27,16 @@ function createRace() {
     // { from: ISOString, to: ISOString|null } — `to: null` means still paused.
     pausedIntervals: [],
     nextParticipantId: 1,
-    nextHeatId: 2,
+    nextHeatId: 3,
     // A race can have multiple start groups ("heats"), each with its own
     // start time, so e.g. a kids' heat and an adults' heat can start at
     // different times while still sharing one leaderboard/history view.
     // Every race starts with one default heat so single-heat races need no
     // extra setup.
-    heats: [{ id: 1, name: 'Heat 1', startAt: null, durationMinutes: null }],
+    heats: [
+      { id: 1, name: 'Heat 1', startAt: null, durationMinutes: null },
+      { id: 2, name: 'Heat 2', startAt: null, durationMinutes: null },
+    ],
     participants: [], // { id, name, gender, rfidCode, rfidAssignedAt, heatId, startNumber }
     nextScanId: 1,
     scans: [], // { id, time (ISO string), code }
@@ -74,6 +77,15 @@ function addHeat(race, name) {
   const cleanName = (name || '').trim() || `Heat ${race.heats.length + 1}`;
   const heat = { id: race.nextHeatId++, name: cleanName, startAt: null, durationMinutes: null };
   race.heats.push(heat);
+  return heat;
+}
+
+/** Renames a heat. An empty/blank name falls back to "Heat n", matching the
+ *  default naming used when a heat is first added. */
+function renameHeat(race, heatId, name) {
+  const heat = requireHeat(race, heatId);
+  const index = race.heats.indexOf(heat);
+  heat.name = (name || '').trim() || `Heat ${index + 1}`;
   return heat;
 }
 
@@ -658,6 +670,7 @@ module.exports = {
   DomainError,
   createRace,
   addHeat,
+  renameHeat,
   removeHeat,
   setHeatStartTime,
   setHeatDurationMinutes,

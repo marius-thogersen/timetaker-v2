@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   createRace,
   addHeat,
+  renameHeat,
   removeHeat,
   setHeatStartTime,
   setHeatDurationMinutes,
@@ -194,7 +195,7 @@ test('addHeat, assignParticipantHeat and removeHeat manage multiple start groups
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   const heat2 = addHeat(race, 'Kids');
   assert.equal(heat2.name, 'Kids');
-  assert.equal(race.heats.length, 2);
+  assert.equal(race.heats.length, 3); // the 2 default heats plus "Kids"
 
   assignParticipantHeat(race, ada.id, heat2.id);
   assert.equal(race.participants.find((p) => p.id === ada.id).heatId, heat2.id);
@@ -204,10 +205,38 @@ test('addHeat, assignParticipantHeat and removeHeat manage multiple start groups
 
   assignParticipantHeat(race, ada.id, race.heats[0].id);
   removeHeat(race, heat2.id);
+  assert.equal(race.heats.length, 2);
+
+  removeHeat(race, race.heats[1].id);
   assert.equal(race.heats.length, 1);
 
   // Can't remove the last remaining heat.
   assert.throws(() => removeHeat(race, race.heats[0].id), /At least one heat/);
+});
+
+test('createRace starts with two default heats, ready for a typical 2-group race', () => {
+  const race = createRace();
+  assert.equal(race.heats.length, 2);
+  assert.equal(race.heats[0].name, 'Heat 1');
+  assert.equal(race.heats[1].name, 'Heat 2');
+});
+
+test('addHeat falls back to "Heat n+1" when given a blank name', () => {
+  const race = createRace(); // already has Heat 1 and Heat 2
+  const heat3 = addHeat(race, '   ');
+  assert.equal(heat3.name, 'Heat 3');
+});
+
+test('renameHeat sets a new name, or falls back to "Heat n" (by position) when blank', () => {
+  const race = createRace();
+  const heat2 = race.heats[1];
+  renameHeat(race, heat2.id, 'Kids heat');
+  assert.equal(race.heats[1].name, 'Kids heat');
+
+  renameHeat(race, heat2.id, '   ');
+  assert.equal(race.heats[1].name, 'Heat 2');
+
+  assert.throws(() => renameHeat(race, 999, 'Nope'), /No heat with id 999/);
 });
 
 test('signup is locked once the race has started', () => {

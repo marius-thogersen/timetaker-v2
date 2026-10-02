@@ -441,7 +441,7 @@ tr.clickable-row:hover td { background: var(--border); }
 .rfid-code-input { width: 100%; max-width: 220px; }
 
 .heats-table { margin: 0 0 var(--space-4); }
-.heats-table .heat-name { font-weight: 700; }
+.heats-table .heat-name-input { font-weight: 700; width: 100%; max-width: 180px; }
 .heats-table td:last-child { text-align: right; }
 
 .heat-remove-button {
