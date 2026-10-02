@@ -78,7 +78,7 @@ let editingScanId = null;
 // load, even while the 1s poll loop is in flight.
 const autoDefaultedHeatIds = new Set();
 
-const THEMES = ['dark', 'light', 'retro'];
+const THEMES = ['dark', 'light'];
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
