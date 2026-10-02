@@ -26,12 +26,28 @@ function persist() {
 
 // Every console line gets a timestamp, so operators (and anyone reading a
 // redirected log file) can tell exactly when something happened, no matter
-// how long the server has been running unattended.
+// how long the server has been running unattended. Matches the format used
+// by rfid_reader.py's console/app.log output: local wall-clock time plus
+// its UTC offset, e.g. "2026-10-02 13:47:17 +0200".
+function pad(number, width = 2) {
+  return String(number).padStart(width, '0');
+}
+
+function formatTimestamp(date) {
+  const offsetMinutes = -date.getTimezoneOffset();
+  const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+  const offsetAbs = Math.abs(offsetMinutes);
+  const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  const offsetPart = `${offsetSign}${pad(Math.floor(offsetAbs / 60))}${pad(offsetAbs % 60)}`;
+  return `${datePart} ${timePart} ${offsetPart}`;
+}
+
 function logLine(...args) {
-  console.log(`[${new Date().toISOString()}]`, ...args);
+  console.log(`[${formatTimestamp(new Date())}]`, ...args);
 }
 function logErrorLine(...args) {
-  console.error(`[${new Date().toISOString()}]`, ...args);
+  console.error(`[${formatTimestamp(new Date())}]`, ...args);
 }
 
 let lastScanReceivedAt = null;
