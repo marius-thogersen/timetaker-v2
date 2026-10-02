@@ -304,7 +304,6 @@ function renderLeaderboard(heats, rows) {
       return `
         <tr class="clickable-row" data-participant-id="${row.id}">
           <td>${index + 1}</td>
-          <td>${row.startNumber ?? '—'}</td>
           <td>${escapeHtml(row.name)}</td>
           ${showHeatColumn ? `<td>${escapeHtml(heatName(row.heatId))}</td>` : ''}
           <td>${row.rounds}</td>
@@ -319,7 +318,7 @@ function renderLeaderboard(heats, rows) {
     <table>
       <thead>
         <tr>
-          <th>#</th><th>Bib</th><th>Name</th>${showHeatColumn ? '<th>Heat</th>' : ''}<th>Rounds</th><th>Distance</th><th>Lap time</th><th>Time on course</th>
+          <th>#</th><th>Name</th>${showHeatColumn ? '<th>Heat</th>' : ''}<th>Rounds</th><th>Distance</th><th>Lap time</th><th>Time on course</th>
         </tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
