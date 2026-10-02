@@ -60,8 +60,9 @@ const participantDetailMeta = document.getElementById('participantDetailMeta');
 const participantDetailStats = document.getElementById('participantDetailStats');
 
 const lapDistanceInput = document.getElementById('lapDistanceInput');
-const minLapMinutesInput = document.getElementById('minLapMinutesInput');
-const minLapSecondsOnlyInput = document.getElementById('minLapSecondsOnlyInput');
+const minLapTimeInput = document.getElementById('minLapTimeInput');
+let minLapBuffer = '';
+let minLapFreshEntry = true;
 const raceSettingsFeedback = document.getElementById('raceSettingsFeedback');
 
 const lapDetailOverlay = document.getElementById('lapDetailOverlay');
@@ -493,10 +494,8 @@ async function refreshState({ force = false } = {}) {
   if (document.activeElement !== lapDistanceInput) {
     lapDistanceInput.value = state.lapDistanceMeters || '';
   }
-  if (document.activeElement !== minLapMinutesInput && document.activeElement !== minLapSecondsOnlyInput) {
-    const total = state.minLapSeconds || 0;
-    minLapMinutesInput.value = total ? Math.floor(total / 60) || '' : '';
-    minLapSecondsOnlyInput.value = total ? total % 60 : '';
+  if (document.activeElement !== minLapTimeInput) {
+    minLapTimeInput.value = formatMinLapSeconds(state.minLapSeconds);
   }
 
   await ensureHeatDefaults(state.heats);
@@ -979,10 +978,32 @@ async function saveLapDistance() {
   }
 }
 
+function formatMinLapSeconds(totalSeconds) {
+  if (!totalSeconds) return '';
+  const pad2 = (n) => String(n).padStart(2, '0');
+  return `${pad2(Math.floor(totalSeconds / 60))}:${pad2(totalSeconds % 60)}`;
+}
+
+// Digits typed so far render as mm:ss as soon as there are enough of them;
+// seconds default to "00" so the user only has to type minutes digits.
+function formatMinLapBuffer(digits) {
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 async function saveMinLapSeconds() {
-  const minutes = Number(minLapMinutesInput.value) || 0;
-  const seconds = Number(minLapSecondsOnlyInput.value) || 0;
-  const totalSeconds = minutes * 60 + seconds;
+  let totalSeconds = null;
+  if (minLapBuffer.length > 0) {
+    // Right-pad with zeros: "10" -> "1000" (10m 00s), not left-pad.
+    const padded = (minLapBuffer + '0000').slice(0, 4);
+    const minutes = Number(padded.slice(0, 2));
+    const seconds = Math.min(59, Number(padded.slice(2)));
+    totalSeconds = minutes * 60 + seconds;
+    minLapTimeInput.value = formatMinLapSeconds(totalSeconds);
+  } else {
+    minLapTimeInput.value = '';
+  }
   try {
     await api('/api/race/min-lap-seconds', {
       method: 'POST',
@@ -996,11 +1017,50 @@ async function saveMinLapSeconds() {
   }
 }
 
+// Focus starts a fresh entry: first digit typed replaces the whole value
+// instead of editing in place, like a card-expiry mask.
+minLapTimeInput.addEventListener('focus', () => {
+  minLapFreshEntry = true;
+  minLapBuffer = minLapTimeInput.value.replace(/\D/g, '');
+  minLapTimeInput.select();
+});
+
+const MIN_LAP_PASSTHROUGH_KEYS = new Set([
+  'Tab', 'ArrowLeft', 'ArrowRight', 'Escape', 'Home', 'End', 'Shift', 'Control', 'Alt', 'Meta',
+]);
+
+minLapTimeInput.addEventListener('keydown', (event) => {
+  if (event.key >= '0' && event.key <= '9') {
+    event.preventDefault();
+    if (minLapFreshEntry) {
+      minLapBuffer = '';
+      minLapFreshEntry = false;
+    }
+    minLapBuffer = (minLapBuffer + event.key).slice(-4);
+    minLapTimeInput.value = formatMinLapBuffer(minLapBuffer);
+    return;
+  }
+  if (event.key === 'Backspace' || event.key === 'Delete') {
+    event.preventDefault();
+    minLapFreshEntry = false;
+    minLapBuffer = minLapBuffer.slice(0, -1);
+    minLapTimeInput.value = formatMinLapBuffer(minLapBuffer);
+    return;
+  }
+  if (event.key === 'Enter') {
+    minLapTimeInput.blur();
+    return;
+  }
+  if (!MIN_LAP_PASSTHROUGH_KEYS.has(event.key)) {
+    event.preventDefault();
+  }
+});
+
+minLapTimeInput.addEventListener('blur', saveMinLapSeconds);
+
 // The lap distance field saves itself as soon as the user moves away from
 // it (or presses Enter) — there's no separate "Save" button to press.
 lapDistanceInput.addEventListener('change', saveLapDistance);
-minLapMinutesInput.addEventListener('change', saveMinLapSeconds);
-minLapSecondsOnlyInput.addEventListener('change', saveMinLapSeconds);
 
 function populateParticipantFilter(participants) {
   const currentValue = logParticipantFilter.value;

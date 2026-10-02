@@ -57,10 +57,7 @@
           </label>
           <label class="lap-distance-field">
             Minimum lap time (mm:ss)
-            <span class="cell-inline">
-              <input type="number" id="minLapMinutesInput" min="0" step="1" placeholder="10" style="width:54px" /> m
-              <input type="number" id="minLapSecondsOnlyInput" min="0" max="59" step="1" placeholder="0" style="width:54px" /> s
-            </span>
+            <input type="text" id="minLapTimeInput" class="min-lap-time-input" inputmode="numeric" autocomplete="off" maxlength="5" value="10:00" />
           </label>
         </div>
         <p id="raceSettingsFeedback" class="hint" hidden></p>
