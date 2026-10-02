@@ -15,6 +15,7 @@ const signupError = document.getElementById('signupError');
 const participantsByHeat = document.getElementById('participantsByHeat');
 const startButton = document.getElementById('startButton');
 const startHint = document.getElementById('startHint');
+const autoStartCheckbox = document.getElementById('autoStartCheckbox');
 
 const heatsList = document.getElementById('heatsList');
 const addHeatForm = document.getElementById('addHeatForm');
@@ -626,11 +627,12 @@ participantsByHeat.addEventListener('change', async (event) => {
   }
 });
 
-startButton.addEventListener('click', async () => {
+async function attemptStartRace() {
   try {
     await api('/api/race/start', { method: 'POST' });
     await refreshState();
     setPage('race');
+    return true;
   } catch (error) {
     // Rare: the disabled-state check above already covers "no participants"
     // and "a heat isn't due yet", but a heat's start time can tick over
@@ -639,8 +641,39 @@ startButton.addEventListener('click', async () => {
     startHint.textContent = error.message;
     startHint.classList.add('error');
     startHint.hidden = false;
+    return false;
   }
+}
+
+startButton.addEventListener('click', attemptStartRace);
+
+// Auto-start: once "Auto-start when due" is checked, don't make the user
+// sit there and click Start race the instant a scheduled heat time
+// arrives — check every second (purely a local clock comparison against
+// the already-fetched heats, no network call) and start automatically the
+// moment the button would've become enabled anyway.
+const AUTO_START_PREF_KEY = 'timetaker.autoStart';
+autoStartCheckbox.checked = localStorage.getItem(AUTO_START_PREF_KEY) === 'true';
+autoStartCheckbox.addEventListener('change', () => {
+  localStorage.setItem(AUTO_START_PREF_KEY, String(autoStartCheckbox.checked));
 });
+
+let autoStarting = false;
+async function checkAutoStart() {
+  if (autoStarting || !autoStartCheckbox.checked) return;
+  if (latestStatus !== 'signup') return;
+  if (latestParticipants.length === 0) return;
+  const now = new Date();
+  const notYetDue = latestHeats.some((h) => h.startAt && new Date(h.startAt) > now);
+  if (notYetDue) return;
+  autoStarting = true;
+  try {
+    await attemptStartRace();
+  } finally {
+    autoStarting = false;
+  }
+}
+setInterval(checkAutoStart, 1000);
 
 // Generic dropdown-menu wiring, shared by the race-actions menu (⋮) and the
 // header menu (☰): clicking the button toggles its menu (closing any other

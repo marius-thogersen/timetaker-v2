@@ -115,7 +115,13 @@
       <p id="raceEndedNotice" class="notice" hidden>🏁 Race has ended — data is frozen for export. Resume it to keep going, or start a new race from this one via Race history.</p>
       <div class="race-toolbar">
         <div class="start-race-row">
-          <button id="startButton" class="primary large">▶ Start race</button>
+          <div class="start-race-controls">
+            <button id="startButton" class="primary large">▶ Start race</button>
+            <label class="auto-start-toggle">
+              <input type="checkbox" id="autoStartCheckbox" />
+              Auto-start when due
+            </label>
+          </div>
           <p id="startHint" class="hint" hidden>Add at least one participant to start the race.</p>
         </div>
         <span class="spacer"></span>

@@ -511,6 +511,22 @@ tr.clickable-row:hover td { background: var(--border); }
   gap: var(--space-1);
 }
 
+.start-race-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.auto-start-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.88rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+.auto-start-toggle input { width: auto; }
+
 /* ---------- Race view toolbar + menu ---------- */
 
 .race-toolbar {
