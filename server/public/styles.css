@@ -422,6 +422,33 @@ td.numeric { text-align: right; }
 tbody tr:first-child td { font-weight: 700; color: var(--text); }
 tbody tr.empty-row td { color: var(--dim); font-weight: 400; }
 
+tr.clickable-row { cursor: pointer; }
+tr.clickable-row:hover td { background: var(--border); }
+
+/* ---------- Modal (lap details) ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-5);
+}
+
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  max-width: 480px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 /* A compact inline group inside a table cell, e.g. a time input plus a
    small "now"/"clear" link button sitting on the same line. */
 .cell-inline {

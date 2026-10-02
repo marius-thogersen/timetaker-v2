@@ -124,12 +124,23 @@
 
     <section id="raceHistoryView" hidden>
       <h2>Race history</h2>
-      <div class="race-toolbar">
-        <span>Current race standings</span>
-        <span class="spacer"></span>
-        <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
-        <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
+
+      <div id="currentRaceCard" class="settings-card">
+        <div class="race-toolbar">
+          <h3 class="log-title">Current race <span id="currentRaceStatusLabel" class="pill"></span></h3>
+          <span class="spacer"></span>
+          <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
+          <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
+          <button id="newRaceFromHistoryButton" type="button" class="menu-item" title="The current race must be ended first (via the Race tab menu) before it can be used as a template.">New race from this template…</button>
+        </div>
+        <table id="currentRaceLeaderboardTable">
+          <thead>
+            <tr><th>Rank</th><th>Bib</th><th>Name</th><th>Heat</th><th>Rounds</th><th>Distance</th><th>Last lap</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
       </div>
+
       <p id="raceHistoryEmpty" class="hint" hidden>No past races yet — use "New race from this template…" (available once a race has ended) to archive one here.</p>
       <table id="archiveTable">
         <thead>
@@ -179,6 +190,22 @@
       </table>
     </section>
   </main>
+
+  <div id="lapDetailOverlay" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="race-toolbar">
+        <h3 id="lapDetailName" class="log-title"></h3>
+        <span class="spacer"></span>
+        <button id="lapDetailCloseButton" type="button" class="icon-button" title="Close">✕</button>
+      </div>
+      <p id="lapDetailMeta" class="hint"></p>
+      <table id="lapDetailTable">
+        <thead><tr><th>Lap</th><th>Time</th><th>Duration</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p id="lapDetailEmpty" class="hint" hidden>No completed laps yet.</p>
+    </div>
+  </div>
 
   <script src="/app.js"></script>
   <script src="/wakelock.js"></script>
