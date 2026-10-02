@@ -109,8 +109,6 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
   padding: var(--space-2) var(--space-4);
   font-size: 0.85rem;
   cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
 }
 .header-button:hover { background: var(--border); }
 
