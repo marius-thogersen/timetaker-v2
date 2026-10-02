@@ -1109,9 +1109,8 @@ function renderLog(rows) {
         : row.excluded
         ? `Excluded: ${escapeHtml(row.excludeReason)}`
         : escapeHtml(reasonLabel(row.reason));
-      const excludeToggleButton = row.excluded
-        ? `<button type="button" class="icon-button scan-include-button" data-id="${row.id}" title="Include again">↩</button>`
-        : `<button type="button" class="icon-button scan-exclude-button" data-id="${row.id}" title="Exclude with a reason">🚫</button>`;
+      const excludeTitle = row.excluded ? 'Already excluded' : 'Exclude with a reason';
+      const excludeButton = `<button type="button" class="icon-button scan-exclude-button" data-id="${row.id}" title="${excludeTitle}" ${row.excluded ? 'disabled' : ''}><span class="exclude-arrow">→</span></button>`;
       tr.innerHTML = `
         <td>${formatTime(row.time)}</td>
         <td>${participantCell}</td>
@@ -1120,7 +1119,7 @@ function renderLog(rows) {
         <td class="hint">${reasonCell}</td>
         <td class="cell-inline">
           <button type="button" class="icon-button scan-edit-button" data-id="${row.id}" title="Edit time">✏️</button>
-          ${excludeToggleButton}
+          ${excludeButton}
           <button type="button" class="icon-button scan-delete-button" data-id="${row.id}" title="Delete">🗑</button>
         </td>
       `;
@@ -1333,18 +1332,6 @@ logTable.addEventListener('click', async (event) => {
         method: 'POST',
         body: JSON.stringify({ reason }),
       });
-      await refreshLog();
-    } catch (error) {
-      alert(error.message);
-    }
-    return;
-  }
-
-  const includeButton = event.target.closest('.scan-include-button');
-  if (includeButton) {
-    const id = Number(includeButton.dataset.id);
-    try {
-      await api(`/api/scans/${id}/include`, { method: 'POST' });
       await refreshLog();
     } catch (error) {
       alert(error.message);
