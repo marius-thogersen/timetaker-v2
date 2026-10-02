@@ -290,6 +290,7 @@ function countPendingPreStartScans(race) {
     const endCutoff = heatEndAt(heat);
     const scans = race.scans
       .filter((s) => s.code === participant.rfidCode)
+      .filter((s) => !s.excluded)
       .filter((s) => !cutoff || s.time >= cutoff)
       .filter((s) => !endCutoff || s.time < endCutoff)
       .filter((s) => !isPaused(race, s.time))
@@ -507,6 +508,11 @@ function recordScan(race, { time, code }) {
     id: race.nextScanId++,
     time: normalizedTime,
     code: cleanCode,
+    // Manual override: an organizer can exclude a scan from counting at
+    // all (e.g. a stray tap, a duplicate chip) with a required reason,
+    // independent of the automatic eligibility rules below.
+    excluded: false,
+    excludeReason: null,
   };
   race.scans.push(scan);
   return scan;
@@ -547,6 +553,37 @@ function removeScan(race, scanId) {
     throw new DomainError(`No scan with id ${scanId}.`);
   }
   race.scans.splice(index, 1);
+}
+
+/** Manually excludes a scan from counting at all, regardless of what the
+ *  automatic eligibility rules would otherwise decide — e.g. the organizer
+ *  recognizes a stray tap or a chip used to test the reader. A reason is
+ *  required so the scan log stays a readable audit trail instead of a
+ *  silent override. */
+function excludeScan(race, scanId, reason) {
+  const scan = race.scans.find((s) => s.id === scanId);
+  if (!scan) {
+    throw new DomainError(`No scan with id ${scanId}.`);
+  }
+  const cleanReason = (reason || '').trim();
+  if (!cleanReason) {
+    throw new DomainError('Provide a reason for excluding this scan.');
+  }
+  scan.excluded = true;
+  scan.excludeReason = cleanReason;
+  return scan;
+}
+
+/** Undoes a manual exclusion, letting the automatic eligibility rules
+ *  decide again whether the scan counts. */
+function includeScan(race, scanId) {
+  const scan = race.scans.find((s) => s.id === scanId);
+  if (!scan) {
+    throw new DomainError(`No scan with id ${scanId}.`);
+  }
+  scan.excluded = false;
+  scan.excludeReason = null;
+  return scan;
 }
 
 /** True if the given ISO timestamp falls inside a paused (stopped) window. */
@@ -591,6 +628,7 @@ function eligibleScansForParticipant(race, participant) {
   const endCutoff = heatEndAt(heat);
   return race.scans
     .filter((s) => s.code === participant.rfidCode)
+    .filter((s) => !s.excluded)
     .filter((s) => !cutoff || s.time >= cutoff)
     .filter((s) => !endCutoff || s.time < endCutoff)
     .filter((s) => !isPaused(race, s.time))
@@ -733,7 +771,11 @@ function getScanHistory(race, { participantId, minLapSeconds } = {}) {
     const endCutoff = heatEndAt(heat);
     const counted = countedScanIds.has(s.id);
     let reason = null;
-    if (counted) {
+    if (s.excluded) {
+      // Manual override always wins — shown ahead of whatever the
+      // automatic rules below would otherwise have said.
+      reason = 'manually_excluded';
+    } else if (counted) {
       reason = null;
     } else if (!participant) {
       reason = 'unknown_code';
@@ -764,6 +806,8 @@ function getScanHistory(race, { participantId, minLapSeconds } = {}) {
       participantName: participant ? participant.name : null,
       counted,
       reason,
+      excluded: s.excluded,
+      excludeReason: s.excludeReason,
     };
   });
 
@@ -802,6 +846,8 @@ module.exports = {
   recordScan,
   editScan,
   removeScan,
+  excludeScan,
+  includeScan,
   getLeaderboard,
   getScanHistory,
   getLapHistory,

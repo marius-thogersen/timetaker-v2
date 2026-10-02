@@ -1089,12 +1089,12 @@ function renderLog(rows) {
       tr.innerHTML = `
         <td><input type="datetime-local" step="1" class="scan-edit-time" value="${datetimeLocalValueOf(row.time)}" /></td>
         <td>${row.participantId ? escapeHtml(row.participantName) : '<span class="hint">Unknown code</span>'}</td>
-        <td><input type="text" class="scan-edit-code" value="${escapeHtml(row.code)}" /></td>
+        <td>${escapeHtml(row.code)}</td>
         <td></td>
         <td></td>
         <td class="cell-inline">
-          <button type="button" class="link-button scan-save-button" data-id="${row.id}">Save</button>
-          <button type="button" class="link-button scan-cancel-button" data-id="${row.id}">Cancel</button>
+          <button type="button" class="icon-button scan-save-button" data-id="${row.id}" title="Save">✔</button>
+          <button type="button" class="icon-button scan-cancel-button" data-id="${row.id}" title="Cancel">✕</button>
         </td>
       `;
     } else {
@@ -1104,7 +1104,14 @@ function renderLog(rows) {
       const badge = row.counted
         ? '<span class="badge counted">Counted</span>'
         : '<span class="badge excluded">Excluded</span>';
-      const reasonCell = row.counted ? '' : escapeHtml(reasonLabel(row.reason));
+      const reasonCell = row.counted
+        ? ''
+        : row.excluded
+        ? `Excluded: ${escapeHtml(row.excludeReason)}`
+        : escapeHtml(reasonLabel(row.reason));
+      const excludeToggleButton = row.excluded
+        ? `<button type="button" class="icon-button scan-include-button" data-id="${row.id}" title="Include again">↩</button>`
+        : `<button type="button" class="icon-button scan-exclude-button" data-id="${row.id}" title="Exclude with a reason">🚫</button>`;
       tr.innerHTML = `
         <td>${formatTime(row.time)}</td>
         <td>${participantCell}</td>
@@ -1112,8 +1119,9 @@ function renderLog(rows) {
         <td>${badge}</td>
         <td class="hint">${reasonCell}</td>
         <td class="cell-inline">
-          <button type="button" class="link-button scan-edit-button" data-id="${row.id}">Edit</button>
-          <button type="button" class="link-button scan-delete-button" data-id="${row.id}">Delete</button>
+          <button type="button" class="icon-button scan-edit-button" data-id="${row.id}" title="Edit time">✏️</button>
+          ${excludeToggleButton}
+          <button type="button" class="icon-button scan-delete-button" data-id="${row.id}" title="Delete">🗑</button>
         </td>
       `;
     }
@@ -1130,6 +1138,7 @@ function reasonLabel(reason) {
     after_end: 'After end',
     paused: 'Paused',
     bounce: 'Too soon',
+    manually_excluded: 'Excluded',
   };
   return labels[reason] || 'Not counted';
 }
@@ -1297,13 +1306,45 @@ logTable.addEventListener('click', async (event) => {
     const id = Number(saveButton.dataset.id);
     const tr = saveButton.closest('tr');
     const timeValue = tr.querySelector('.scan-edit-time').value;
-    const codeValue = tr.querySelector('.scan-edit-code').value;
     try {
       await api(`/api/scans/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ time: new Date(timeValue).toISOString(), code: codeValue }),
+        body: JSON.stringify({ time: new Date(timeValue).toISOString() }),
       });
       editingScanId = null;
+      await refreshLog();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
+
+  const excludeButton = event.target.closest('.scan-exclude-button');
+  if (excludeButton) {
+    const id = Number(excludeButton.dataset.id);
+    const reason = prompt('Why exclude this scan?');
+    if (reason === null) return; // cancelled
+    if (!reason.trim()) {
+      alert('A reason is required to exclude a scan.');
+      return;
+    }
+    try {
+      await api(`/api/scans/${id}/exclude`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      });
+      await refreshLog();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
+
+  const includeButton = event.target.closest('.scan-include-button');
+  if (includeButton) {
+    const id = Number(includeButton.dataset.id);
+    try {
+      await api(`/api/scans/${id}/include`, { method: 'POST' });
       await refreshLog();
     } catch (error) {
       alert(error.message);

@@ -27,6 +27,8 @@ const {
   recordScan,
   editScan,
   removeScan,
+  excludeScan,
+  includeScan,
   getLeaderboard,
   getScanHistory,
   getLapHistory,
@@ -468,6 +470,42 @@ test('editScan corrects a stored scan\'s time and/or code, and removeScan delete
   removeScan(race, scan.id);
   assert.equal(race.scans.length, 0);
   assert.throws(() => removeScan(race, scan.id), DomainError);
+});
+
+test('excludeScan requires a reason and keeps an excluded scan from ever counting as a lap', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T08:00:00.000Z') });
+  const race = createRace();
+  setMinLapSeconds(race, 5);
+  const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T09:00:00.000Z');
+  setHeatStartTime(race, race.heats[1].id, '2024-01-01T09:00:00.000Z');
+  t.mock.timers.tick(60 * 60 * 1000); // now 09:00 — heats are due
+  startRace(race);
+
+  t.mock.timers.tick(30 * 60 * 1000); // now 09:30
+  const scan = recordScan(race, { time: new Date().toISOString(), code: ada.rfidCode });
+
+  assert.throws(() => excludeScan(race, scan.id, ''), /reason/);
+  assert.throws(() => excludeScan(race, scan.id, '   '), /reason/);
+  assert.throws(() => excludeScan(race, 999, 'duplicate chip'), DomainError);
+
+  excludeScan(race, scan.id, 'Organizer saw this was a stray tap');
+  assert.equal(race.scans[0].excluded, true);
+  assert.equal(race.scans[0].excludeReason, 'Organizer saw this was a stray tap');
+  assert.equal(getLeaderboard(race).find((r) => r.id === ada.id).rounds, 0);
+
+  const history = getScanHistory(race);
+  const entry = history.find((e) => e.id === scan.id);
+  assert.equal(entry.counted, false);
+  assert.equal(entry.reason, 'manually_excluded');
+  assert.equal(entry.excludeReason, 'Organizer saw this was a stray tap');
+
+  includeScan(race, scan.id);
+  assert.equal(race.scans[0].excluded, false);
+  assert.equal(race.scans[0].excludeReason, null);
+  assert.equal(getLeaderboard(race).find((r) => r.id === ada.id).rounds, 1);
+
+  assert.throws(() => includeScan(race, 999), DomainError);
 });
 
 test('getLeaderboard ranks by rounds, ignoring scans before the race started', (t) => {

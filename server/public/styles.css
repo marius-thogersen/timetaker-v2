@@ -605,6 +605,19 @@ tr.clickable-row:hover td { background: var(--border); }
   color: var(--text);
 }
 
+/* Scan log row actions (edit/exclude/delete) reuse .icon-button but need to
+ * stay small and inline with the rest of the row, unlike the larger
+ * standalone icon buttons (e.g. modal close buttons) elsewhere. */
+#logTable .icon-button {
+  width: 28px;
+  height: 28px;
+  font-size: 0.95rem;
+}
+#logTable .scan-delete-button:hover { color: var(--error); }
+#logTable .scan-exclude-button:hover { color: var(--error); }
+#logTable .scan-include-button:hover { color: var(--accent); }
+#logTable .scan-save-button:hover { color: var(--accent); }
+
 .actions-menu {
   position: absolute;
   right: 0;
