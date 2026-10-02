@@ -109,7 +109,10 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
   gap: var(--space-3);
   cursor: default;
 }
-
+.menu-item.wake-lock-toggle .wake-lock-label,
+.menu-item.theme-row > span:not(.menu-icon) {
+  flex: 1;
+}
 .theme-row select {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -620,7 +623,10 @@ tr.clickable-row:hover td { background: var(--border); }
   position: absolute;
   right: 0;
   top: calc(100% + var(--space-2));
-  min-width: 170px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -630,13 +636,17 @@ tr.clickable-row:hover td { background: var(--border); }
 }
 
 .menu-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   width: 100%;
+  min-height: 40px;
   text-align: left;
   background: none;
   border: none;
   border-radius: var(--radius-sm);
   padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
   font-weight: 400;
   color: var(--text);
   text-decoration: none;
@@ -644,6 +654,18 @@ tr.clickable-row:hover td { background: var(--border); }
   box-sizing: border-box;
 }
 .menu-item:hover { background: var(--border); }
+
+/* Icons get a fixed-width column so every menu item's label starts at the
+   same horizontal position, instead of drifting with each emoji's own
+   natural width. */
+.menu-icon {
+  flex: none;
+  width: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
 
 /* ---------- Race control panel (play/pause, reset, end) ---------- */
 /* A stack of bold, color-coded, icon-led buttons inside the ⋮ dropdown —
