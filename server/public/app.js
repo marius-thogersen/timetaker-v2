@@ -1123,12 +1123,22 @@ logTable.addEventListener('click', async (event) => {
   await refreshState();
 })();
 
-setInterval(async () => {
+// Live updates via Server-Sent Events: the server pushes a message the
+// moment anything actually changes (a scan comes in, someone signs up,
+// a heat gets edited, ...), instead of the browser blindly asking on a
+// timer. EventSource reconnects on its own if the connection drops; we
+// also force one resync right after (re)connecting, in case an update
+// was missed while disconnected.
+const liveUpdates = new EventSource('/api/events');
+async function handleLiveUpdate() {
   await refreshState();
-  if (currentpage === 'log') await refreshLog();
-}, 1000);
+  if (currentPage === 'log') await refreshLog();
+}
+liveUpdates.addEventListener('update', handleLiveUpdate);
+liveUpdates.addEventListener('open', handleLiveUpdate);
 
 // One shared interval ticks every row's "time on course" cell forward every
-// second, independent of the (also 1s) network refresh above, so the
-// numbers keep advancing smoothly even if a fetch is briefly delayed.
+// second, purely client-side math (no network call) — it's not tied to
+// server updates at all, so the numbers keep advancing smoothly between
+// them.
 setInterval(updateTimeOnCourse, 1000);

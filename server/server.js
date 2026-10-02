@@ -20,8 +20,28 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const store = new SqliteStore(DATA_FILE);
 const state = store.load(race.createRace);
 
+// ---------------------------------------------------------------------------
+// Live updates: Server-Sent Events. Every mutation goes through persist()
+// (the single choke point below), so broadcasting from there — instead of
+// having the browser poll on a timer — tells every connected tab the moment
+// something actually changes (a new scan, a signup, a heat edit, anything).
+// ---------------------------------------------------------------------------
+const sseClients = new Set();
+
+function broadcastUpdate() {
+  const payload = `event: update\ndata: ${Date.now()}\n\n`;
+  for (const res of sseClients) {
+    try {
+      res.write(payload);
+    } catch (error) {
+      // Client already gone; its 'close' handler will clean up the Set.
+    }
+  }
+}
+
 function persist() {
   store.save(state);
+  broadcastUpdate();
 }
 
 // Every console line gets a timestamp, so operators (and anyone reading a
@@ -212,6 +232,25 @@ const httpServer = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   try {
+    if (url.pathname === '/api/events' && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      });
+      res.write('retry: 2000\n\n');
+      sseClients.add(res);
+      // A periodic comment (not a real event) keeps the connection alive
+      // through any intermediary that might otherwise time out an idle
+      // socket; comments are invisible to EventSource's onmessage handler.
+      const heartbeat = setInterval(() => res.write(': ping\n\n'), 20_000);
+      req.on('close', () => {
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      });
+      return;
+    }
+
     if (url.pathname === '/api/state' && req.method === 'GET') {
       return sendJson(res, 200, publicState());
     }
