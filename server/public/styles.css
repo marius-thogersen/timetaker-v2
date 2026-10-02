@@ -438,6 +438,8 @@ tr.clickable-row:hover td { background: var(--border); }
   padding: var(--space-5);
 }
 
+.modal-overlay[hidden] { display: none; }
+
 .modal-card {
   background: var(--panel);
   border: 1px solid var(--border);
