@@ -632,9 +632,15 @@ participantsByHeat.addEventListener('change', async (event) => {
   }
 });
 
-async function attemptStartRace() {
+const preStartScansOverlay = document.getElementById('preStartScansOverlay');
+const preStartScansMessage = document.getElementById('preStartScansMessage');
+const preStartScansCloseButton = document.getElementById('preStartScansCloseButton');
+const preStartScansDiscardButton = document.getElementById('preStartScansDiscardButton');
+const preStartScansIncludeButton = document.getElementById('preStartScansIncludeButton');
+
+async function doStartRace(includePreStartScans) {
   try {
-    await api('/api/race/start', { method: 'POST' });
+    await api('/api/race/start', { method: 'POST', body: JSON.stringify({ includePreStartScans }) });
     await refreshState();
     setPage('race');
     return true;
@@ -648,6 +654,54 @@ async function attemptStartRace() {
     startHint.hidden = false;
     return false;
   }
+}
+
+// Scans picked up between a heat's scheduled start time and the moment
+// Start is actually pressed are real, expected laps (the organizer just
+// pressed the button a little late) — but they shouldn't be silently
+// included or silently discarded. Ask, with the actual count, every time
+// there are any.
+async function attemptStartRace() {
+  let pendingCount = 0;
+  try {
+    const result = await api('/api/race/pending-pre-start-scans');
+    pendingCount = result.count;
+  } catch (error) {
+    // If the check itself fails, don't block starting the race over it —
+    // just fall back to the strict "nothing before now" default.
+    pendingCount = 0;
+  }
+  if (pendingCount > 0) {
+    preStartScansMessage.textContent =
+      pendingCount === 1
+        ? '1 lap was recorded since a heat\u2019s scheduled start time but before you pressed Start. Include it, or start fresh from right now?'
+        : `${pendingCount} laps were recorded since heats\u2019 scheduled start times but before you pressed Start. Include them, or start fresh from right now?`;
+    preStartScansOverlay.hidden = false;
+    return new Promise((resolve) => {
+      const cleanup = () => {
+        preStartScansOverlay.hidden = true;
+        preStartScansIncludeButton.removeEventListener('click', onInclude);
+        preStartScansDiscardButton.removeEventListener('click', onDiscard);
+        preStartScansCloseButton.removeEventListener('click', onCancel);
+      };
+      const onInclude = async () => {
+        cleanup();
+        resolve(await doStartRace(true));
+      };
+      const onDiscard = async () => {
+        cleanup();
+        resolve(await doStartRace(false));
+      };
+      const onCancel = () => {
+        cleanup();
+        resolve(false);
+      };
+      preStartScansIncludeButton.addEventListener('click', onInclude);
+      preStartScansDiscardButton.addEventListener('click', onDiscard);
+      preStartScansCloseButton.addEventListener('click', onCancel);
+    });
+  }
+  return doStartRace(false);
 }
 
 startButton.addEventListener('click', attemptStartRace);

@@ -222,6 +222,21 @@
     </div>
   </div>
 
+  <div id="preStartScansOverlay" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="race-toolbar">
+        <h3 class="log-title">Scans received before Start</h3>
+        <span class="spacer"></span>
+        <button id="preStartScansCloseButton" type="button" class="icon-button">✕</button>
+      </div>
+      <p id="preStartScansMessage" class="hint"></p>
+      <div class="modal-actions">
+        <button id="preStartScansDiscardButton" type="button" class="secondary">Start fresh from now</button>
+        <button id="preStartScansIncludeButton" type="button" class="primary">Include them</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
   <script src="/wakelock.js"></script>
 </body>

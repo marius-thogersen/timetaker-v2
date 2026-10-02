@@ -23,6 +23,13 @@ class DomainError extends Error {}
 function createRace() {
   return {
     status: 'signup', // 'signup' | 'started' | 'stopped' | 'ended'
+    // The real moment "Start race" was actually pressed (or auto-started),
+    // as opposed to a heat's merely-scheduled `startAt` — a heat's start
+    // time can be set hours ahead of time, or left over from a previous
+    // signup period, so it alone can never be trusted as proof the race
+    // was actually live. Scans timestamped before this never count, no
+    // matter what a heat's `startAt` says. Cleared back to null on reset.
+    startedAt: null,
     endedAt: null, // when the race was ended (for the auto-generated archive label)
     lapDistanceMeters: DEFAULT_LAP_DISTANCE_METERS, // distance of one lap/round, for a "distance covered" column
     // Two scans of the same chip closer together than this are treated as
@@ -261,7 +268,48 @@ function removeParticipant(race, id) {
   race.participants.splice(index, 1);
 }
 
-function startRace(race) {
+/** Counts how many laps would be gained across every participant by
+ *  including scans received before "Start race" is actually pressed — i.e.
+ *  anything at/after a heat's own scheduled `startAt` but before now. This
+ *  is the normal, expected case (a heat is scheduled for e.g. 10:00 and the
+ *  organizer presses Start right around then, maybe a little late) rather
+ *  than an edge case, which is exactly why `startRace` requires an explicit
+ *  opt-in (`includePreStartScans`) instead of silently including or
+ *  silently discarding them — the caller shows this count in a confirmation
+ *  dialog first. Only meaningful while still in `signup`; returns 0
+ *  otherwise. Thanks to the minimum lap-time window this should almost
+ *  always be 0 or small (at most one swipe per participant during a short
+ *  gap), never a flood. */
+function countPendingPreStartScans(race) {
+  if (race.status !== 'signup') return 0;
+  const effectiveMinLapSeconds = race.minLapSeconds ?? DEFAULT_MIN_LAP_SECONDS;
+  let total = 0;
+  for (const participant of race.participants) {
+    const heat = findHeat(race, participant.heatId);
+    const cutoff = heat ? heat.startAt : null;
+    const endCutoff = heatEndAt(heat);
+    const scans = race.scans
+      .filter((s) => s.code === participant.rfidCode)
+      .filter((s) => !cutoff || s.time >= cutoff)
+      .filter((s) => !endCutoff || s.time < endCutoff)
+      .filter((s) => !isPaused(race, s.time))
+      .filter((s) => !participant.rfidAssignedAt || s.time >= participant.rfidAssignedAt)
+      .sort((a, b) => a.time.localeCompare(b.time));
+    total += computeLaps(scans, cutoff, effectiveMinLapSeconds).rounds;
+  }
+  return total;
+}
+
+/** Starts the race. By default, nothing timestamped before this exact
+ *  moment ever counts — a heat's `startAt` is only a schedule, never proof
+ *  the race was actually live (see `effectiveCutoffFor`). But the normal
+ *  case is scheduling a start time and pressing the button right around
+ *  then (maybe a little late), so reader scans picked up in that gap are
+ *  real and usually should count — pass `includePreStartScans: true` (after
+ *  confirming with the organizer, via `countPendingPreStartScans`) to fall
+ *  back to each heat's own schedule instead of this stricter "really
+ *  pressed start" floor. */
+function startRace(race, { includePreStartScans = false } = {}) {
   if (race.status !== 'signup') {
     throw new DomainError(
       race.status === 'stopped'
@@ -288,6 +336,11 @@ function startRace(race) {
   // Each heat may already have its own start time configured ahead of time;
   // only default a heat to "now" if nobody configured one for it.
   const nowIso = now.toISOString();
+  // Leaving startedAt unset when pre-start scans are deliberately included
+  // means effectiveCutoffFor() falls back to each heat's own schedule —
+  // exactly the old, more permissive behavior — instead of this stricter
+  // floor.
+  if (!includePreStartScans) race.startedAt = nowIso;
   for (const heat of race.heats) {
     if (!heat.startAt) heat.startAt = nowIso;
   }
@@ -385,6 +438,7 @@ function setMinLapSeconds(race, minLapSeconds) {
  *  times can be adjusted again before the next run. */
 function resetRace(race) {
   race.status = 'signup';
+  race.startedAt = null;
   race.endedAt = null;
   race.scans = [];
   race.nextScanId = 1;
@@ -498,16 +552,32 @@ function isPaused(race, isoTime) {
   return race.pausedIntervals.some((interval) => isoTime >= interval.from && (interval.to === null || isoTime < interval.to));
 }
 
+/** The real cutoff before which nothing can count for a given heat: the
+ *  later of the heat's own scheduled `startAt` and the race's actual
+ *  `startedAt` (when "Start race" was really pressed). A heat's `startAt`
+ *  alone can't be trusted — it's a schedule that can be set hours ahead,
+ *  or left over from a previous signup period — so scans timestamped
+ *  between it and the race's real start are excluded by default too,
+ *  unless `startRace` was explicitly told to include them (see
+ *  `includePreStartScans`), in which case `race.startedAt` stays `null`
+ *  and this simply falls back to the heat's own schedule. */
+function effectiveCutoffFor(race, heat) {
+  const cutoff = heat ? heat.startAt : null;
+  if (!race.startedAt) return cutoff;
+  if (!cutoff || race.startedAt > cutoff) return race.startedAt;
+  return cutoff;
+}
+
 /** Scans for one participant that are eligible to count at all: the race
  *  must have actually been (re)started since the last reset (never just
  *  because a heat still has an old `startAt` lying around — resetting a
  *  race deliberately keeps heat start times for next time, so `startAt`
  *  alone can't be trusted as "the race is live"; only the race's own
- *  status can), scanned at/after that heat's start time (and before its
- *  end, if any), not during a paused window, and not before this
- *  participant's *current* RFID code was actually assigned to them
- *  (matching is intentionally not retroactive — see
- *  `setParticipantRfidCode`). Oldest first. */
+ *  status can), scanned at/after that heat's start time *and* the race's
+ *  real start time (and before the heat's end, if any), not during a
+ *  paused window, and not before this participant's *current* RFID code
+ *  was actually assigned to them (matching is intentionally not
+ *  retroactive — see `setParticipantRfidCode`). Oldest first. */
 function eligibleScansForParticipant(race, participant) {
   // Nothing is eligible until the race has been started at least once
   // since the last reset/new-race-from-template — regardless of whatever
@@ -515,7 +585,7 @@ function eligibleScansForParticipant(race, participant) {
   if (race.status === 'signup') return [];
 
   const heat = findHeat(race, participant.heatId);
-  const cutoff = heat ? heat.startAt : null;
+  const cutoff = effectiveCutoffFor(race, heat);
   const endCutoff = heatEndAt(heat);
   return race.scans
     .filter((s) => s.code === participant.rfidCode)
@@ -577,7 +647,7 @@ function getLapHistory(race, participantId, { minLapSeconds } = {}) {
   }
   const effectiveMinLapSeconds = minLapSeconds ?? race.minLapSeconds ?? DEFAULT_MIN_LAP_SECONDS;
   const heat = findHeat(race, participant.heatId);
-  const cutoff = heat ? heat.startAt : null;
+  const cutoff = effectiveCutoffFor(race, heat);
   const eligibleScans = eligibleScansForParticipant(race, participant);
   const { laps } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
   return laps;
@@ -594,7 +664,7 @@ function getLeaderboard(race, { minLapSeconds } = {}) {
   const effectiveMinLapSeconds = minLapSeconds ?? race.minLapSeconds ?? DEFAULT_MIN_LAP_SECONDS;
   const rows = race.participants.map((p) => {
     const heat = findHeat(race, p.heatId);
-    const cutoff = heat ? heat.startAt : null;
+    const cutoff = effectiveCutoffFor(race, heat);
     const eligibleScans = eligibleScansForParticipant(race, p);
     const { rounds, lastLapAt, lastLapDurationMs, totalDurationMs } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
 
@@ -648,7 +718,7 @@ function getScanHistory(race, { participantId, minLapSeconds } = {}) {
   const countedScanIds = new Set();
   for (const p of race.participants) {
     const heat = findHeat(race, p.heatId);
-    const cutoff = heat ? heat.startAt : null;
+    const cutoff = effectiveCutoffFor(race, heat);
     const eligibleScans = eligibleScansForParticipant(race, p);
     const { countedScanIds: counted } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
     for (const id of counted) countedScanIds.add(id);
@@ -657,7 +727,7 @@ function getScanHistory(race, { participantId, minLapSeconds } = {}) {
   let entries = race.scans.map((s) => {
     const participant = byCode.get(s.code) || null;
     const heat = participant ? findHeat(race, participant.heatId) : null;
-    const cutoff = heat ? heat.startAt : null;
+    const cutoff = effectiveCutoffFor(race, heat);
     const endCutoff = heatEndAt(heat);
     const counted = countedScanIds.has(s.id);
     let reason = null;
@@ -718,6 +788,7 @@ module.exports = {
   setParticipantStartNumber,
   removeParticipant,
   startRace,
+  countPendingPreStartScans,
   stopRace,
   resumeRace,
   endRace,

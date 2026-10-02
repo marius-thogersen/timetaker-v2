@@ -314,9 +314,14 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/race/start' && req.method === 'POST') {
-      race.startRace(state);
+      const body = await readJsonBody(req);
+      race.startRace(state, { includePreStartScans: Boolean(body && body.includePreStartScans) });
       persist();
       return sendJson(res, 200, publicState());
+    }
+
+    if (url.pathname === '/api/race/pending-pre-start-scans' && req.method === 'GET') {
+      return sendJson(res, 200, { count: race.countPendingPreStartScans(state) });
     }
 
     if (url.pathname === '/api/race/stop' && req.method === 'POST') {

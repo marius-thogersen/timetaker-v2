@@ -15,6 +15,7 @@ const {
   setParticipantStartNumber,
   removeParticipant,
   startRace,
+  countPendingPreStartScans,
   stopRace,
   resumeRace,
   endRace,
@@ -134,6 +135,53 @@ test('startRace refuses to start while a heat is scheduled for later, but allows
   t.mock.timers.tick(60 * 60 * 1000); // now 10:00 — the scheduled time has arrived
   startRace(race);
   assert.equal(race.status, 'started');
+});
+
+test('scans recorded before Start is actually pressed never count by default, even though a heat\'s startAt already passed', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T08:00:00.000Z') });
+  const race = createRace();
+  setMinLapSeconds(race, 5);
+  const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' }); // rfidAssignedAt: 08:00
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T09:00:00.000Z'); // scheduled for 09:00
+
+  // A scan comes in before anyone presses Start — e.g. the organizer is
+  // still fiddling with signup while the reader is already live.
+  t.mock.timers.tick(90 * 60 * 1000); // now 09:30
+  recordScan(race, { time: '2024-01-01T09:30:00.000Z', code: ada.rfidCode });
+  assert.equal(countPendingPreStartScans(race), 1);
+
+  t.mock.timers.tick(30 * 60 * 1000); // now 10:00 — Start is finally pressed
+  startRace(race); // no includePreStartScans — the strict default
+  assert.equal(race.startedAt, '2024-01-01T10:00:00.000Z');
+  assert.equal(getLeaderboard(race)[0].rounds, 0);
+
+  // A scan after the real start time counts as normal.
+  recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
+  assert.equal(getLeaderboard(race)[0].rounds, 1);
+});
+
+test('startRace({ includePreStartScans: true }) includes scans since each heat\'s own scheduled start time', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T08:00:00.000Z') });
+  const race = createRace();
+  setMinLapSeconds(race, 5);
+  const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' }); // rfidAssignedAt: 08:00
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T09:00:00.000Z');
+
+  t.mock.timers.tick(90 * 60 * 1000); // now 09:30
+  recordScan(race, { time: '2024-01-01T09:30:00.000Z', code: ada.rfidCode });
+  t.mock.timers.tick(30 * 60 * 1000); // now 10:00
+  startRace(race, { includePreStartScans: true });
+
+  assert.equal(race.startedAt, null);
+  assert.equal(getLeaderboard(race)[0].rounds, 1);
+});
+
+test('countPendingPreStartScans is 0 once the race is no longer in signup', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T10:00:00.000Z') });
+  const race = createRace();
+  addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  startRace(race);
+  assert.equal(countPendingPreStartScans(race), 0);
 });
 
 test('setHeatStartTime works during signup and after the race has started, and rejects invalid input', () => {
@@ -352,6 +400,7 @@ test('a scan during signup never counts, even if the heat still has a start time
 test('matching an RFID code is not retroactive: a scan from before the code was assigned never counts for that participant', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T10:06:00.000Z') });
   const race = createRace();
+  setMinLapSeconds(race, 5);
   const ada = addParticipant(race, { name: 'Ada' }); // no code yet
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
@@ -495,20 +544,21 @@ test('getLeaderboard computes the most recent lap duration from the previous lap
   assert.equal(board[0].lastLapDurationMs, 3 * 60 * 1000);
 });
 
-test('getLeaderboard reports no lap duration when there is no start time to measure from', (t) => {
+test('getLeaderboard falls back to the race\'s actual start time to measure a lap duration when a participant\'s heat is orphaned', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T00:00:00.000Z') });
   const race = createRace();
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   // Simulate a participant whose heat reference is orphaned (e.g. its heat
-  // was removed from under it) — there's no startAt to measure a first lap
-  // from, even though the race itself is live and the scan is eligible.
+  // was removed from under it) — there's no heat-specific startAt to
+  // measure a first lap from, but the race's own real start time
+  // (race.startedAt) still applies as the fallback reference.
   ada.heatId = 'no-such-heat';
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
 
   const board = getLeaderboard(race);
   assert.equal(board[0].rounds, 1);
-  assert.equal(board[0].lastLapDurationMs, null);
+  assert.equal(board[0].lastLapDurationMs, 10 * 60 * 60 * 1000 + 5 * 60 * 1000);
 });
 
 test('setLapDistance validates input and getLeaderboard reports distance covered', (t) => {

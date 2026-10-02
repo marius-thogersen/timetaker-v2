@@ -432,6 +432,13 @@ tr.clickable-row:hover td { background: var(--border); }
   overflow-y: auto;
 }
 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
 /* A compact inline group inside a table cell, e.g. a time input plus a
    small "now"/"clear" link button sitting on the same line. */
 .cell-inline {
@@ -510,6 +517,7 @@ tr.clickable-row:hover td { background: var(--border); }
   align-items: flex-start;
   gap: var(--space-1);
 }
+.start-race-row[hidden] { display: none; }
 
 .start-race-controls {
   display: flex;
