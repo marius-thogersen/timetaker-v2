@@ -8,9 +8,15 @@
 
 const GENDERS = ['female', 'male', 'other'];
 
-// Two scans of the same chip closer together than this are treated as one
-// lap (reader bounce / an operator testing the scanner during signup).
-const DEFAULT_MIN_LAP_SECONDS = 5;
+// Default minimum time between two scans of the same chip for them to count
+// as separate laps — short gaps are treated as reader bounce/duplicate scans
+// instead of a new lap. Organizer-configurable per race (e.g. for very short
+// circuits); 10 minutes suits a typical longer-course endurance race.
+const DEFAULT_MIN_LAP_SECONDS = 10 * 60;
+
+// Default distance of one lap/round in meters, for the leaderboard's
+// optional "distance covered" column. Organizer-configurable.
+const DEFAULT_LAP_DISTANCE_METERS = 5000;
 
 class DomainError extends Error {}
 
@@ -18,7 +24,7 @@ function createRace() {
   return {
     status: 'signup', // 'signup' | 'started' | 'stopped' | 'ended'
     endedAt: null, // when the race was ended (for the auto-generated archive label)
-    lapDistanceMeters: null, // optional: distance of one lap/round, for a "distance covered" column
+    lapDistanceMeters: DEFAULT_LAP_DISTANCE_METERS, // distance of one lap/round, for a "distance covered" column
     // Two scans of the same chip closer together than this are treated as
     // one lap (reader bounce / an operator testing the scanner). Organizer-
     // configurable since readers/chips vary in how prone they are to this.

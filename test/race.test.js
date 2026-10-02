@@ -286,8 +286,8 @@ test('resetToDefaults wipes participants, heats, scans and settings back to a br
   assert.equal(race.heats.length, 2);
   assert.equal(race.heats[0].name, 'Heat 1');
   assert.equal(race.heats[1].name, 'Heat 2');
-  assert.equal(race.lapDistanceMeters, null);
-  assert.equal(race.minLapSeconds, 5);
+  assert.equal(race.lapDistanceMeters, 5000);
+  assert.equal(race.minLapSeconds, 600);
 });
 
 test('recordScan stores every scan, even before start or for an unknown code', () => {
@@ -334,6 +334,7 @@ test('a scan during signup never counts, even if the heat still has a start time
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
   assert.equal(getLeaderboard(race).find((r) => r.id === ada.id).rounds, 1);
 
@@ -401,6 +402,7 @@ test('getLeaderboard ranks by rounds, ignoring scans before the race started', (
   recordScan(race, { time: '2024-01-01T09:00:00.000Z', code: ada.rfidCode });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
 
   recordScan(race, { time: '2024-01-01T10:01:00.000Z', code: ada.rfidCode });
   recordScan(race, { time: '2024-01-01T10:02:00.000Z', code: ada.rfidCode });
@@ -460,6 +462,7 @@ test('getLapHistory lists every counted lap in order with its duration, and reje
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
 
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode }); // lap 1: 5 min
   recordScan(race, { time: '2024-01-01T10:05:02.000Z', code: ada.rfidCode }); // bounce, ignored
@@ -479,6 +482,7 @@ test('getLeaderboard computes the most recent lap duration from the previous lap
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
 
   // First lap: duration measured from the race's start time.
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
@@ -513,6 +517,8 @@ test('setLapDistance validates input and getLeaderboard reports distance covered
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
+  setLapDistance(race, null); // start from "no distance configured", not the app-wide default
 
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
   recordScan(race, { time: '2024-01-01T10:10:00.000Z', code: ada.rfidCode });
@@ -540,11 +546,12 @@ test('setMinLapSeconds validates input and adjusts the leaderboard\'s bounce win
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5); // a short test window, independent of the app-wide default
 
   recordScan(race, { time: '2024-01-01T10:00:03.000Z', code: ada.rfidCode }); // first lap
   recordScan(race, { time: '2024-01-01T10:00:07.000Z', code: ada.rfidCode }); // 4s later
 
-  // Default (5s) treats the second scan as a bounce.
+  // This short window treats the second scan as a bounce.
   assert.equal(getLeaderboard(race)[0].rounds, 1);
 
   setMinLapSeconds(race, 2);
@@ -553,7 +560,7 @@ test('setMinLapSeconds validates input and adjusts the leaderboard\'s bounce win
 
   // Clearing it resets back to the default.
   setMinLapSeconds(race, null);
-  assert.equal(race.minLapSeconds, 5);
+  assert.equal(race.minLapSeconds, 600);
 
   assert.throws(() => setMinLapSeconds(race, -1), DomainError);
   assert.throws(() => setMinLapSeconds(race, 'abc'), DomainError);
@@ -565,6 +572,7 @@ test('stopRace pauses scan counting and resumeRace lets it continue, without los
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
 
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode }); // lap 1, counts
 
@@ -615,6 +623,7 @@ test('endRace stops counting and resumeRace can undo it; newRaceFromTemplate req
 
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
   t.mock.timers.tick(12 * 60 * 60 * 1000); // now 2024-01-01T12:00:00.000Z
   endRace(race);
@@ -666,6 +675,7 @@ test('getScanHistory lists every scan newest-first, annotated with participant m
   recordScan(race, { time: '2024-01-01T09:30:00.000Z', code: '0000000099' }); // unknown code
   startRace(race);
   race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5);
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode }); // counted
   recordScan(race, { time: '2024-01-01T10:05:02.000Z', code: ada.rfidCode }); // bounce
   recordScan(race, { time: '2024-01-01T10:06:00.000Z', code: bo.rfidCode }); // counted
