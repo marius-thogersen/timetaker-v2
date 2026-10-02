@@ -21,30 +21,27 @@ function toCsv(rows, columns) {
 }
 
 /** Turns a leaderboard (as returned by race.getLeaderboard) into a CSV
- *  string, one row per participant, ranked within their heat. */
+ *  string, one row per participant, in the given order — getLeaderboard
+ *  already ranks globally across all heats (most rounds first, ties
+ *  broken by least time spent), so rank here is simply position in that
+ *  order, not reset per heat. */
 function leaderboardToCsv(leaderboard) {
-  let lastHeatId;
-  let rank = 0;
-  const rows = leaderboard.map((row) => {
-    if (row.heatId !== lastHeatId) {
-      lastHeatId = row.heatId;
-      rank = 0;
-    }
-    rank += 1;
-    return {
-      rank,
-      startNumber: row.startNumber,
-      name: row.name,
-      gender: row.gender,
-      heatName: row.heatName,
-      rounds: row.rounds,
-      distanceMeters: row.distanceMeters,
-      lastLapAt: row.lastLapAt,
-      lastLapDurationSeconds: row.lastLapDurationMs !== null && row.lastLapDurationMs !== undefined
-        ? Math.round(row.lastLapDurationMs / 1000)
-        : '',
-    };
-  });
+  const rows = leaderboard.map((row, index) => ({
+    rank: index + 1,
+    startNumber: row.startNumber,
+    name: row.name,
+    gender: row.gender,
+    heatName: row.heatName,
+    rounds: row.rounds,
+    timeSpentSeconds: row.timeSpentMs !== null && row.timeSpentMs !== undefined
+      ? Math.round(row.timeSpentMs / 1000)
+      : '',
+    distanceMeters: row.distanceMeters,
+    lastLapAt: row.lastLapAt,
+    lastLapDurationSeconds: row.lastLapDurationMs !== null && row.lastLapDurationMs !== undefined
+      ? Math.round(row.lastLapDurationMs / 1000)
+      : '',
+  }));
 
   return toCsv(rows, [
     { key: 'rank', header: 'Rank' },
@@ -53,6 +50,7 @@ function leaderboardToCsv(leaderboard) {
     { key: 'gender', header: 'Gender' },
     { key: 'heatName', header: 'Heat' },
     { key: 'rounds', header: 'Rounds' },
+    { key: 'timeSpentSeconds', header: 'Time spent (s)' },
     { key: 'distanceMeters', header: 'Distance (m)' },
     { key: 'lastLapAt', header: 'Last lap at' },
     { key: 'lastLapDurationSeconds', header: 'Last lap duration (s)' },

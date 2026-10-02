@@ -538,6 +538,7 @@ function computeLaps(eligibleScans, cutoff, minLapSeconds) {
   let rounds = 0;
   let lastLapAt = null;
   let lastLapDurationMs = null;
+  let totalDurationMs = 0;
   const countedScanIds = new Set();
   const laps = [];
 
@@ -550,13 +551,19 @@ function computeLaps(eligibleScans, cutoff, minLapSeconds) {
       // race's start time if this is the first one.
       rounds += 1;
       lastLapDurationMs = referenceTime ? new Date(scan.time) - new Date(referenceTime) : null;
+      // Running total of every counted lap's duration so far — this is
+      // the participant's actual time spent completing their rounds,
+      // independent of what time of day (or which heat's start time) it
+      // happened to be. A lap with an unknown duration (no cutoff to
+      // measure the very first one from) simply doesn't contribute.
+      totalDurationMs += lastLapDurationMs || 0;
       lastLapAt = scan.time;
       countedScanIds.add(scan.id);
       laps.push({ lapNumber: rounds, time: scan.time, durationMs: lastLapDurationMs });
     }
   }
 
-  return { rounds, lastLapAt, lastLapDurationMs, countedScanIds, laps };
+  return { rounds, lastLapAt, lastLapDurationMs, totalDurationMs, countedScanIds, laps };
 }
 
 /** Lap-by-lap breakdown for one participant: every counted lap, in order,
@@ -578,16 +585,18 @@ function getLapHistory(race, participantId, { minLapSeconds } = {}) {
 
 /** Ranked list of participants by completed rounds (laps), including the
  *  duration of each one's most recent lap (time since the previous lap, or
- *  since their heat's start time for a first lap). Rows are grouped by heat
- *  (each heat ranked independently, since heats start at different times),
- *  then ranked by rounds within that heat. */
+ *  since their heat's start time for a first lap) and their total time
+ *  spent completing all counted laps so far. Ranked globally across all
+ *  heats — most rounds first, ties broken by least actual time spent —
+ *  so a faster runner from a later-starting heat still outranks a slower
+ *  one from an earlier heat with the same round count. */
 function getLeaderboard(race, { minLapSeconds } = {}) {
   const effectiveMinLapSeconds = minLapSeconds ?? race.minLapSeconds ?? DEFAULT_MIN_LAP_SECONDS;
   const rows = race.participants.map((p) => {
     const heat = findHeat(race, p.heatId);
     const cutoff = heat ? heat.startAt : null;
     const eligibleScans = eligibleScansForParticipant(race, p);
-    const { rounds, lastLapAt, lastLapDurationMs } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
+    const { rounds, lastLapAt, lastLapDurationMs, totalDurationMs } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
 
     return {
       id: p.id,
@@ -600,16 +609,26 @@ function getLeaderboard(race, { minLapSeconds } = {}) {
       rounds,
       lastLapAt,
       lastLapDurationMs,
+      // Sum of every completed lap's duration — the participant's actual
+      // time spent on course, independent of the clock-on-the-wall time
+      // their heat happened to start at. This (not lastLapAt, which is an
+      // absolute timestamp) is what lets a faster runner from a
+      // later-starting heat correctly outrank a slower one from an
+      // earlier heat with the same round count.
+      timeSpentMs: rounds > 0 ? totalDurationMs : null,
       distanceMeters: race.lapDistanceMeters ? rounds * race.lapDistanceMeters : null,
     };
   });
 
+  // Ranked globally (not grouped by heat): most rounds first, then — for
+  // equal round counts — whoever spent the least actual time completing
+  // them, so heats that started later don't unfairly rank below earlier
+  // heats just because their absolute clock time is later.
   return rows.sort((a, b) => {
-    if (a.heatId !== b.heatId) return a.heatId - b.heatId;
     if (b.rounds !== a.rounds) return b.rounds - a.rounds;
-    if (a.lastLapAt && b.lastLapAt) return a.lastLapAt.localeCompare(b.lastLapAt);
-    if (a.lastLapAt) return -1;
-    if (b.lastLapAt) return 1;
+    if (a.timeSpentMs != null && b.timeSpentMs != null) return a.timeSpentMs - b.timeSpentMs;
+    if (a.timeSpentMs != null) return -1;
+    if (b.timeSpentMs != null) return 1;
     return a.name.localeCompare(b.name);
   });
 }

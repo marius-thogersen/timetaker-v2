@@ -291,14 +291,19 @@ function renderLeaderboard(heats, rows) {
   const showHeatColumn = heats.length > 1;
   const sorted = rows.slice().sort((a, b) => {
     if (b.rounds !== a.rounds) return b.rounds - a.rounds;
-    const aTime = a.lastLapAt ? new Date(a.lastLapAt).getTime() : Infinity;
-    const bTime = b.lastLapAt ? new Date(b.lastLapAt).getTime() : Infinity;
+    // Compare actual time spent completing their rounds, not the
+    // absolute clock time of their last lap — otherwise a faster runner
+    // from a later-starting heat would wrongly rank below a slower one
+    // from an earlier heat just because their heat started later.
+    const aTime = a.timeSpentMs != null ? a.timeSpentMs : Infinity;
+    const bTime = b.timeSpentMs != null ? b.timeSpentMs : Infinity;
     return aTime - bTime;
   });
   const rowsHtml = sorted
     .map((row, index) => {
       const heat = heatsById.get(row.heatId);
       const lapDuration = row.lastLapDurationMs != null ? formatDuration(row.lastLapDurationMs) : '—';
+      const timeSpent = row.timeSpentMs != null ? formatDuration(row.timeSpentMs) : '—';
       const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
       const reference = row.lastLapAt || (heat && heat.startAt) || null;
       return `
@@ -307,6 +312,7 @@ function renderLeaderboard(heats, rows) {
           <td>${escapeHtml(row.name)}</td>
           ${showHeatColumn ? `<td>${escapeHtml(heatName(row.heatId))}</td>` : ''}
           <td>${row.rounds}</td>
+          <td>${timeSpent}</td>
           <td>${distance}</td>
           <td>${lapDuration}</td>
           <td class="time-on-course" data-ref="${reference || ''}">${reference ? formatDuration(Date.now() - new Date(reference).getTime()) : '—'}</td>
@@ -318,7 +324,7 @@ function renderLeaderboard(heats, rows) {
     <table>
       <thead>
         <tr>
-          <th>#</th><th>Name</th>${showHeatColumn ? '<th>Heat</th>' : ''}<th>Rounds</th><th>Distance</th><th>Lap time</th><th>Time on course</th>
+          <th>#</th><th>Name</th>${showHeatColumn ? '<th>Heat</th>' : ''}<th>Rounds</th><th>Time spent</th><th>Distance</th><th>Lap time</th><th>Time on course</th>
         </tr>
       </thead>
       <tbody>${rowsHtml}</tbody>

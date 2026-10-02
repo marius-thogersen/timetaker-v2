@@ -105,8 +105,11 @@ timezone and was being compared, as a string, against a UTC one).
   5s) count as one lap — filters out reader bounce. This is a parameter to
   `getLeaderboard()`, not baked into scan recording, so it can be tuned
   without losing data.
-- Leaderboard sort: rounds desc, then earliest `lastLapAt` (whoever reached
-  that lap count first ranks higher), then name.
+- Leaderboard sort: ranked globally across all heats — rounds desc, then
+  least `timeSpentMs` (sum of all completed lap durations; this is actual
+  time spent, not the absolute `lastLapAt` clock time, so a faster runner
+  from a later-starting heat still correctly outranks a slower one from an
+  earlier heat), then name.
 
 ### Ending a race, exporting, and starting a new one from a template
 
@@ -131,8 +134,9 @@ timezone and was being compared, as a string, against a UTC one).
   participantCount only — cheap, no JSON parsing) and viewed/exported via
   `GET /api/archive/:id/leaderboard`, `/export.json`, `/export.csv` — each
   parses that one archive's full JSON blob out of the `data` column.
-- CSV shaping lives in `server/domain/csv.js` (`leaderboardToCsv`) — ranks
-  reset per heat, matching the order `getLeaderboard()` already returns.
+- CSV shaping lives in `server/domain/csv.js` (`leaderboardToCsv`) — rank is
+  simply position in the given order, matching `getLeaderboard()`'s global
+  ranking (no longer reset per heat).
 
 ## Running locally
 
