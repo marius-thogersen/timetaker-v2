@@ -4,7 +4,7 @@ const statusPill = document.getElementById('statusPill');
 const statusBar = document.getElementById('statusBar');
 const signupView = document.getElementById('signupView');
 const raceView = document.getElementById('raceView');
-const themeToggle = document.getElementById('themeToggle');
+const themeSelect = document.getElementById('themeSelect');
 
 const signupForm = document.getElementById('signupForm');
 const nameInput = document.getElementById('nameInput');
@@ -78,15 +78,16 @@ let editingScanId = null;
 // load, even while the 1s poll loop is in flight.
 const autoDefaultedHeatIds = new Set();
 
+const THEMES = ['dark', 'light', 'retro'];
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
-  themeToggle.setAttribute('aria-pressed', String(theme === 'light'));
+  themeSelect.value = theme;
 }
 
 function initTheme() {
   const saved = localStorage.getItem(THEME_KEY);
-  if (saved === 'light' || saved === 'dark') {
+  if (THEMES.includes(saved)) {
     applyTheme(saved);
     return;
   }
@@ -94,9 +95,8 @@ function initTheme() {
   applyTheme(prefersLight ? 'light' : 'dark');
 }
 
-themeToggle.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  const next = current === 'light' ? 'dark' : 'light';
+themeSelect.addEventListener('change', () => {
+  const next = THEMES.includes(themeSelect.value) ? themeSelect.value : 'dark';
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 });

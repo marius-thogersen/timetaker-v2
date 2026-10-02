@@ -9,6 +9,7 @@
   --error: #ff3d6b;
   --text: #dcdcf0;
   --dim: #7777a0;
+  --font: "Segoe UI", system-ui, sans-serif;
 
   /* Spacing scale — every margin/gap/padding below is one of these,
      so vertical rhythm and alignment stay consistent across the app. */
@@ -37,11 +38,37 @@
   --dim: #6b6b85;
 }
 
+/* A green-on-black CRT/terminal look: same layout and functionality as
+   every other theme, just restyled via the variables above plus a
+   monospace font and a subtle text-glow on accented text. */
+:root[data-theme='retro'] {
+  color-scheme: dark;
+  --bg: #020603;
+  --panel: #07120a;
+  --border: #15401f;
+  --accent: #39ff6a;
+  --success: #39ff6a;
+  --warning: #ffe066;
+  --error: #ff5a5a;
+  --text: #a9ffbe;
+  --dim: #2f8a47;
+  --font: "Consolas", "Courier New", monospace;
+}
+:root[data-theme='retro'] h1,
+:root[data-theme='retro'] .heat-group-title,
+:root[data-theme='retro'] .log-title,
+:root[data-theme='retro'] .settings-card legend {
+  text-shadow: 0 0 6px rgba(57, 255, 106, 0.55);
+}
+:root[data-theme='retro'] tbody tr:first-child td {
+  text-shadow: 0 0 5px rgba(57, 255, 106, 0.45);
+}
+
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font);
   background: var(--bg);
   color: var(--text);
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -74,19 +101,14 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 
 .spacer { flex: 1; }
 
-#themeToggle {
+.theme-select {
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius-pill);
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  font-size: 1.1rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .pill {
