@@ -480,14 +480,13 @@ tr.clickable-row:hover td { background: var(--border); }
 }
 
 /* ---------- Start-race call to action ---------- */
-
+/* Lives inside the race view's toolbar now (next to the ⋮ control panel),
+   so it's a compact inline block rather than a big centered standalone one. */
 .start-race-row {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-6) 0 var(--space-4);
-  text-align: center;
+  align-items: flex-start;
+  gap: var(--space-1);
 }
 
 /* ---------- Race view toolbar + menu ---------- */
@@ -588,4 +587,40 @@ tr.clickable-row:hover td { background: var(--border); }
   box-sizing: border-box;
 }
 .menu-item:hover { background: var(--border); }
+
+/* ---------- Race control panel (play/pause, reset, end) ---------- */
+/* A stack of bold, color-coded, icon-led buttons inside the ⋮ dropdown —
+   each one's state (color/label/disabled) reflects exactly what's possible
+   right now, instead of a generic always-on text menu. */
+.control-panel {
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  background: var(--border);
+  color: var(--text);
+  transition: filter 0.15s;
+}
+.control-button:hover:not(:disabled) { filter: brightness(1.15); }
+
+.control-button--play { background: rgba(60, 200, 130, 0.18); color: var(--success); border-color: var(--success); }
+.control-button--pause { background: rgba(255, 176, 32, 0.18); color: var(--warning); border-color: var(--warning); }
+.control-button--reset { background: var(--panel); color: var(--text); border-color: var(--border); }
+.control-button--end { background: rgba(255, 70, 70, 0.14); color: var(--error); border-color: var(--error); }
+.control-button:disabled { background: var(--panel); color: var(--dim); border-color: var(--border); filter: none; }
 .menu-item.danger-text { color: var(--error); }

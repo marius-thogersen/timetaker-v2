@@ -23,9 +23,8 @@ const raceDateInput = document.getElementById('raceDateInput');
 
 const leaderboardByHeat = document.getElementById('leaderboardByHeat');
 const resetButton = document.getElementById('resetButton');
-const stopResumeButton = document.getElementById('stopResumeButton');
+const playPauseButton = document.getElementById('playPauseButton');
 const endRaceButton = document.getElementById('endRaceButton');
-const newRaceButton = document.getElementById('newRaceButton');
 const actionsMenuButton = document.getElementById('actionsMenuButton');
 const actionsMenu = document.getElementById('actionsMenu');
 const headerMenuButton = document.getElementById('headerMenuButton');
@@ -509,16 +508,26 @@ async function refreshState() {
   });
 
   const hasParticipants = state.participants.length > 0;
-  startButton.hidden = state.status !== 'signup';
+  const notStarted = state.status === 'signup';
+  startButton.closest('.start-race-row').hidden = !notStarted;
   startButton.disabled = !hasParticipants;
-  startHint.hidden = !(state.status === 'signup' && !hasParticipants);
+  startHint.hidden = !(notStarted && !hasParticipants);
 
   raceNotStartedNotice.hidden = state.status !== 'signup';
   raceEndedNotice.hidden = state.status !== 'ended';
-  stopResumeButton.hidden = state.status === 'signup';
-  stopResumeButton.textContent = state.status === 'stopped' || state.status === 'ended' ? '▶ Resume race' : '⏸ Stop race';
-  endRaceButton.hidden = state.status !== 'started' && state.status !== 'stopped';
-  newRaceButton.hidden = state.status !== 'ended';
+
+  // The ⋮ control panel only makes sense once there's actually a race in
+  // progress (or paused/ended) to control — before that, "Start race" above
+  // is the only available action.
+  actionsMenuButton.closest('.menu-wrapper').hidden = notStarted;
+  if (notStarted) closeAllMenus();
+  playPauseButton.textContent = state.status === 'started' ? '⏸ Pause race' : '▶ Resume race';
+  playPauseButton.classList.toggle('control-button--pause', state.status === 'started');
+  playPauseButton.classList.toggle('control-button--play', state.status !== 'started');
+  // Ending only makes sense while a race is actually running or paused —
+  // once it's already ended, this is correctly disabled (not hidden, so
+  // it's clear the action exists but isn't applicable right now).
+  endRaceButton.disabled = state.status !== 'started' && state.status !== 'stopped';
 
   const leaderboard = await api('/api/leaderboard');
   renderLeaderboard(state.heats, leaderboard);
@@ -675,9 +684,9 @@ resetButton.addEventListener('click', async () => {
   await refreshState();
 });
 
-stopResumeButton.addEventListener('click', async () => {
+playPauseButton.addEventListener('click', async () => {
   closeActionsMenu();
-  const action = stopResumeButton.textContent.includes('Resume') ? 'resume' : 'stop';
+  const action = playPauseButton.textContent.includes('Resume') ? 'resume' : 'stop';
   try {
     await api(`/api/race/${action}`, { method: 'POST' });
     await refreshState();
@@ -707,11 +716,6 @@ async function startNewRaceFromTemplate() {
     alert(error.message);
   }
 }
-
-newRaceButton.addEventListener('click', () => {
-  closeActionsMenu();
-  startNewRaceFromTemplate();
-});
 
 newRaceFromHistoryButton.addEventListener('click', startNewRaceFromTemplate);
 

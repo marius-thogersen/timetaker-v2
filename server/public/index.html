@@ -108,25 +108,23 @@
       <p id="signupError" class="error" hidden></p>
 
       <div id="participantsByHeat"></div>
-
-      <div class="start-race-row">
-        <button id="startButton" class="primary large">Start race</button>
-        <p id="startHint" class="hint" hidden>Add at least one participant to start the race.</p>
-      </div>
     </section>
 
     <section id="raceView" hidden>
-      <p id="raceNotStartedNotice" class="hint" hidden>Race hasn't started yet — add participants on the Signup tab and press "Start race".</p>
-      <p id="raceEndedNotice" class="notice" hidden>🏁 Race has ended — data is frozen for export. Resume it to keep going, or start a new race from this one via the menu.</p>
+      <p id="raceNotStartedNotice" class="hint" hidden>Race hasn't started yet — add participants on the Signup tab, then press "Start race" below.</p>
+      <p id="raceEndedNotice" class="notice" hidden>🏁 Race has ended — data is frozen for export. Resume it to keep going, or start a new race from this one via Race history.</p>
       <div class="race-toolbar">
+        <div class="start-race-row">
+          <button id="startButton" class="primary large">▶ Start race</button>
+          <p id="startHint" class="hint" hidden>Add at least one participant to start the race.</p>
+        </div>
         <span class="spacer"></span>
         <div class="menu-wrapper">
           <button id="actionsMenuButton" type="button" class="icon-button" aria-haspopup="true" aria-expanded="false">⋮</button>
-          <div id="actionsMenu" class="actions-menu" hidden>
-            <button id="resetButton" type="button" class="menu-item danger-text">Reset rounds…</button>
-            <button id="stopResumeButton" type="button" class="menu-item">Stop race</button>
-            <button id="endRaceButton" type="button" class="menu-item danger-text">End race…</button>
-            <button id="newRaceButton" type="button" class="menu-item">New race from this template…</button>
+          <div id="actionsMenu" class="actions-menu control-panel" hidden>
+            <button id="playPauseButton" type="button" class="control-button control-button--play">▶ Resume race</button>
+            <button id="resetButton" type="button" class="control-button control-button--reset">⟲ Reset rounds</button>
+            <button id="endRaceButton" type="button" class="control-button control-button--end">⏹ End race</button>
           </div>
         </div>
       </div>
