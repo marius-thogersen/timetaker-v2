@@ -441,7 +441,15 @@ tr.clickable-row:hover td { background: var(--border); }
 }
 .cell-inline input { width: auto; }
 
-.start-number-input { width: 64px; }
+.start-number-input {
+  width: 64px;
+  -moz-appearance: textfield;
+}
+.start-number-input::-webkit-outer-spin-button,
+.start-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 .rfid-code-input { width: 100%; max-width: 220px; }
 
 .heats-table { margin: 0 0 var(--space-4); }
