@@ -211,6 +211,10 @@ function renderHeatsList(heats) {
       <tbody>${rowsHtml}</tbody>
     </table>
   `;
+
+  if (document.activeElement !== newHeatNameInput) {
+    newHeatNameInput.placeholder = `Heat ${heats.length + 1}`;
+  }
 }
 
 function populateSignupHeatSelect(heats) {
