@@ -377,6 +377,32 @@ test('getLeaderboard collapses two scans within the minimum lap window into one 
   assert.equal(board[0].rounds, 2);
 });
 
+test('getLeaderboard also applies the minimum lap window to the first lap, measured from the heat start', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T00:00:00.000Z') });
+  const race = createRace();
+  const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  startRace(race);
+  race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+  setMinLapSeconds(race, 5 * 60); // 5 minute minimum lap
+
+  // Nobody can genuinely finish a lap in 2 minutes with a 5 minute minimum,
+  // so this is reader noise near the start line, not a real first lap.
+  recordScan(race, { time: '2024-01-01T10:02:00.000Z', code: ada.rfidCode });
+  let board = getLeaderboard(race);
+  assert.equal(board[0].rounds, 0);
+  let history = getScanHistory(race, { participantId: ada.id });
+  assert.equal(history[0].counted, false);
+  assert.equal(history[0].reason, 'bounce');
+
+  // A scan at/after the minimum window counts as the (real) first lap.
+  recordScan(race, { time: '2024-01-01T10:06:00.000Z', code: ada.rfidCode });
+  board = getLeaderboard(race);
+  assert.equal(board[0].rounds, 1);
+  assert.equal(board[0].lastLapDurationMs, 6 * 60 * 1000);
+  history = getScanHistory(race, { participantId: ada.id });
+  assert.equal(history[0].counted, true);
+});
+
 test('getLeaderboard computes the most recent lap duration from the previous lap or race start', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T00:00:00.000Z') });
   const race = createRace();

@@ -497,7 +497,11 @@ function eligibleScansForParticipant(race, participant) {
 
 /** Walks one participant's eligible scans and decides which ones count as a
  *  lap (collapsing reader bounces within minLapSeconds), returning the
- *  running totals plus the set of scan ids that counted. Shared by the
+ *  running totals plus the set of scan ids that counted. The minimum lap
+ *  window applies to the first lap too, measured from the heat's start time
+ *  (`cutoff`) — nobody can genuinely finish a lap faster than the minimum,
+ *  so an early scan that close to the start is reader noise, not a real
+ *  first lap, same as a bounce between two later laps. Shared by the
  *  leaderboard and the scan-history/audit view so the two never disagree. */
 function computeLaps(eligibleScans, cutoff, minLapSeconds) {
   let rounds = 0;
@@ -507,11 +511,11 @@ function computeLaps(eligibleScans, cutoff, minLapSeconds) {
 
   for (const scan of eligibleScans) {
     const isFirst = lastLapAt === null;
-    const secondsSinceLast = isFirst ? Infinity : (new Date(scan.time) - new Date(lastLapAt)) / 1000;
-    if (isFirst || secondsSinceLast >= minLapSeconds) {
+    const referenceTime = isFirst ? cutoff : lastLapAt;
+    const secondsSinceLast = referenceTime ? (new Date(scan.time) - new Date(referenceTime)) / 1000 : Infinity;
+    if (secondsSinceLast >= minLapSeconds) {
       // Duration is measured from the previous counted lap, or from the
       // race's start time if this is the first one.
-      const referenceTime = isFirst ? cutoff : lastLapAt;
       rounds += 1;
       lastLapDurationMs = referenceTime ? new Date(scan.time) - new Date(referenceTime) : null;
       lastLapAt = scan.time;
