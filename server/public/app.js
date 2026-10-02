@@ -193,7 +193,7 @@ function renderHeatsList(heats, { force = false } = {}) {
           <td><input type="text" class="heat-name-input" data-heat-id="${heat.id}" value="${escapeHtml(heat.name)}" /></td>
           <td>
             <span class="cell-inline">
-              <input type="time" class="heat-time-input" data-heat-id="${heat.id}" value="${heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME}" />
+              <input type="time" step="300" class="heat-time-input" data-heat-id="${heat.id}" value="${heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME}" />
               <button type="button" class="link-button heat-now-button" data-heat-id="${heat.id}">now</button>
             </span>
           </td>
@@ -821,6 +821,10 @@ heatsList.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ name: nameInput.value.trim() }),
       });
+      // For a text input, 'change' only fires on blur, so focus has
+      // already moved elsewhere by the time we get here — always safe
+      // (and necessary, per the Tab-to-another-field case) to force a
+      // re-render.
       await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
@@ -837,13 +841,38 @@ heatsList.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ startAt }),
       });
-      await refreshState({ force: true });
+      // Unlike a text input, a native time input fires 'change' as soon
+      // as a segment (e.g. the minutes) is completed — while the user is
+      // still mid-edit and the field is still focused, not just on blur.
+      // Forcing a full re-render right then would tear down and rebuild
+      // this very input, killing its focus/cursor position while typing.
+      // Only force once focus has actually moved elsewhere (e.g. via Tab
+      // to another field) — same guard, just conditional on that instead
+      // of blanket-forcing.
+      await refreshState({ force: document.activeElement !== timeInput });
     } catch (error) {
       alert(error.message);
     }
     return;
   }
 });
+
+// Catch-up: once focus actually leaves a heat name/time field (e.g. the
+// user clicks away, or tabs past it to something that isn't itself a
+// guarded field), force one re-render so any secondary displays that
+// depend on it — the "Start: ..." note in the participants table, the
+// start-button's "not due yet" hint — reflect the saved value, even if
+// the 'change' handler above deliberately skipped forcing one while the
+// field was still focused.
+heatsList.addEventListener(
+  'focusout',
+  (event) => {
+    const field = event.target.closest('.heat-name-input, .heat-time-input');
+    if (!field) return;
+    refreshState({ force: true });
+  },
+  true
+);
 
 heatsList.addEventListener('click', async (event) => {
   const nowButton = event.target.closest('.heat-now-button');
