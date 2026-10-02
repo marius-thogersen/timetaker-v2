@@ -520,7 +520,7 @@ async function refreshState() {
   // progress (or paused/ended) to control — before that, "Start race" above
   // is the only available action.
   actionsMenuButton.closest('.menu-wrapper').hidden = notStarted;
-  if (notStarted) closeAllMenus();
+  if (notStarted) closeActionsMenu();
   playPauseButton.textContent = state.status === 'started' ? '⏸ Pause race' : '▶ Resume race';
   playPauseButton.classList.toggle('control-button--pause', state.status === 'started');
   playPauseButton.classList.toggle('control-button--play', state.status !== 'started');
