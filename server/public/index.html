@@ -112,12 +112,10 @@
         <div class="menu-wrapper">
           <button id="actionsMenuButton" type="button" class="icon-button" title="Race actions" aria-haspopup="true" aria-expanded="false">⋮</button>
           <div id="actionsMenu" class="actions-menu" hidden>
+            <button id="resetButton" type="button" class="menu-item danger-text">Reset rounds…</button>
             <button id="stopResumeButton" type="button" class="menu-item">Stop race</button>
             <button id="endRaceButton" type="button" class="menu-item danger-text">End race…</button>
             <button id="newRaceButton" type="button" class="menu-item">New race from this template…</button>
-            <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export leaderboard (JSON)</a>
-            <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export leaderboard (CSV)</a>
-            <button id="resetButton" type="button" class="menu-item danger-text">Reset rounds…</button>
           </div>
         </div>
       </div>
@@ -126,6 +124,12 @@
 
     <section id="raceHistoryView" hidden>
       <h2>Race history</h2>
+      <div class="race-toolbar">
+        <span>Current race standings</span>
+        <span class="spacer"></span>
+        <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
+        <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
+      </div>
       <p id="raceHistoryEmpty" class="hint" hidden>No past races yet — use "New race from this template…" (available once a race has ended) to archive one here.</p>
       <table id="archiveTable">
         <thead>

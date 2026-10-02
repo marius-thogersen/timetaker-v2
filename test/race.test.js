@@ -119,6 +119,20 @@ test('startRace keeps a start time that was preset during signup', () => {
   assert.equal(race.heats[0].startAt, '2024-01-01T09:00:00.000Z');
 });
 
+test('startRace refuses to start while a heat is scheduled for later, but allows it once that time arrives', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T09:00:00.000Z') });
+  const race = createRace();
+  addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T10:00:00.000Z'); // an hour from "now"
+
+  assert.throws(() => startRace(race), /hasn't arrived yet/);
+  assert.equal(race.status, 'signup');
+
+  t.mock.timers.tick(60 * 60 * 1000); // now 10:00 — the scheduled time has arrived
+  startRace(race);
+  assert.equal(race.status, 'started');
+});
+
 test('setHeatStartTime works during signup and after the race has started, and rejects invalid input', () => {
   const race = createRace();
   const heatId = race.heats[0].id;
@@ -530,6 +544,7 @@ test('newRaceFromTemplate keeps heats and participants but clears scans/rounds a
   setHeatStartTime(race, 1, '2024-01-01T10:00:00.000Z');
   setHeatDurationMinutes(race, 1, 60);
   const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  t.mock.timers.tick(10 * 60 * 60 * 1000); // now 2024-01-01T10:00:00.000Z, heat's start time has arrived
   startRace(race);
   recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode });
   endRace(race);

@@ -254,12 +254,24 @@ function startRace(race) {
   if (race.participants.length === 0) {
     throw new DomainError('Add at least one participant before starting.');
   }
+  // A heat's configured start time is a schedule, not just a cutoff: if an
+  // organizer set one for later today (or any future moment), pressing
+  // "Start" early must not silently go live and wait around doing nothing —
+  // it should refuse outright, so the race only ever starts once its
+  // planned time has actually arrived.
+  const now = new Date();
+  const notYetDue = race.heats.find((heat) => heat.startAt && new Date(heat.startAt) > now);
+  if (notYetDue) {
+    throw new DomainError(
+      `${notYetDue.name} is scheduled to start at ${new Date(notYetDue.startAt).toLocaleString()}, which hasn't arrived yet.`
+    );
+  }
   race.status = 'started';
   // Each heat may already have its own start time configured ahead of time;
   // only default a heat to "now" if nobody configured one for it.
-  const now = new Date().toISOString();
+  const nowIso = now.toISOString();
   for (const heat of race.heats) {
-    if (!heat.startAt) heat.startAt = now;
+    if (!heat.startAt) heat.startAt = nowIso;
   }
 }
 
