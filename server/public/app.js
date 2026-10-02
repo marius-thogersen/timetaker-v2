@@ -5,6 +5,7 @@ const statusBar = document.getElementById('statusBar');
 const signupView = document.getElementById('signupView');
 const raceView = document.getElementById('raceView');
 const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
 
 const signupForm = document.getElementById('signupForm');
 const nameInput = document.getElementById('nameInput');
@@ -97,6 +98,7 @@ const THEMES = ['dark', 'light'];
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   themeToggle.checked = theme === 'light';
+  themeIcon.textContent = theme === 'light' ? '☀️' : '🌙';
 }
 
 function initTheme() {

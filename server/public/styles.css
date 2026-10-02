@@ -100,8 +100,8 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 }
 
 /* Inside the header's dropdown menu, the wake-lock toggle and theme picker
-   are full-width rows with their label pushed to the left and the switch
-   pinned to the right, exactly like every other row in the menu. */
+   are a single compact row each: just an icon and the switch, pinned to
+   opposite ends — no label text to wrap or crowd the row. */
 .menu-item.wake-lock-toggle,
 .menu-item.theme-row {
   display: flex;
@@ -110,11 +110,9 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
   gap: var(--space-3);
   cursor: pointer;
 }
-.menu-item.wake-lock-toggle .wake-lock-label,
-.menu-item.theme-row span {
-  flex: 1;
-  font-size: inherit;
-  color: inherit;
+.menu-icon {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .menu-divider {
