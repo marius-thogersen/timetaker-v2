@@ -159,6 +159,35 @@ $writer.AutoFlush = $true
 $writer.WriteLine('{"time":"2024-01-01T10:00:00.000","code":"0000000001"}')
 ```
 
+For a whole race's worth of realistic, concurrent scans (useful for demos
+and load-testing the leaderboard), use the standalone simulator instead —
+see "Race simulator" below.
+
+## Race simulator
+
+`tools/simulate-race.js` is a standalone script that plays the part of a
+room full of RFID readers: it talks to an already-running server purely
+through its existing HTTP API (`/api/participants`, `/api/race/start`) and
+the same TCP scan socket `rfid_reader.py` uses, generating randomized laps
+for every participant in parallel until the simulated duration elapses.
+
+It requires **zero changes anywhere else in the codebase** — no imports
+from `server/domain`, no special-cased routes, nothing. To remove the
+feature entirely, delete `tools/simulate-race.js` (and the `tools/` folder
+if nothing else is in it).
+
+```powershell
+node server\server.js                 # in one terminal
+node tools\simulate-race.js --help     # in another, see all flags
+node tools\simulate-race.js --duration 2 --speed 20
+```
+
+If the race has no participants yet, it creates some fake ones first;
+otherwise it reuses whoever is already signed up. Pass `--no-start` to
+layer simulated scans onto an already-live race instead of starting a new
+one. **Always point it at a throwaway `data/race.db`** (or back yours up
+first) — it creates real participants/scans through the real API.
+
 ## Data files
 
 - `data/race.db` — a real SQLite database (via Node's built-in
