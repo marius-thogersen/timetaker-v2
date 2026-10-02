@@ -282,19 +282,6 @@ const httpServer = http.createServer(async (req, res) => {
       persist();
       return sendJson(res, 200, { ok: true });
     }
-    const scanExcludeMatch = url.pathname.match(/^\/api\/scans\/(\d+)\/exclude$/);
-    if (scanExcludeMatch && req.method === 'POST') {
-      const body = await readJsonBody(req);
-      race.excludeScan(state, Number(scanExcludeMatch[1]), body.reason);
-      persist();
-      return sendJson(res, 200, race.getScanHistory(state));
-    }
-    const scanIncludeMatch = url.pathname.match(/^\/api\/scans\/(\d+)\/include$/);
-    if (scanIncludeMatch && req.method === 'POST') {
-      race.includeScan(state, Number(scanIncludeMatch[1]));
-      persist();
-      return sendJson(res, 200, race.getScanHistory(state));
-    }
 
     if (url.pathname === '/api/participants' && req.method === 'POST') {
       const body = await readJsonBody(req);

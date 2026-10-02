@@ -47,9 +47,7 @@ class SqliteStore {
       CREATE TABLE IF NOT EXISTS scans (
         id INTEGER PRIMARY KEY,
         time TEXT NOT NULL,
-        code TEXT NOT NULL,
-        excluded INTEGER NOT NULL DEFAULT 0,
-        exclude_reason TEXT
+        code TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS paused_intervals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,13 +75,6 @@ class SqliteStore {
     if (!columns.includes('rfid_assigned_at')) {
       this.db.exec('ALTER TABLE participants ADD COLUMN rfid_assigned_at TEXT');
     }
-    const scanColumns = this.db.prepare("PRAGMA table_info(scans)").all().map((c) => c.name);
-    if (!scanColumns.includes('excluded')) {
-      this.db.exec('ALTER TABLE scans ADD COLUMN excluded INTEGER NOT NULL DEFAULT 0');
-    }
-    if (!scanColumns.includes('exclude_reason')) {
-      this.db.exec('ALTER TABLE scans ADD COLUMN exclude_reason TEXT');
-    }
   }
 
 
@@ -108,10 +99,7 @@ class SqliteStore {
       .prepare('SELECT id, name, gender, rfid_code AS rfidCode, rfid_assigned_at AS rfidAssignedAt, heat_id AS heatId, start_number AS startNumber FROM participants ORDER BY id')
       .all()
       .map((p) => ({ ...p, rfidAssignedAt: p.rfidAssignedAt || null }));
-    const scans = db
-      .prepare('SELECT id, time, code, excluded, exclude_reason AS excludeReason FROM scans ORDER BY id')
-      .all()
-      .map((s) => ({ ...s, excluded: Boolean(s.excluded), excludeReason: s.excludeReason || null }));
+    const scans = db.prepare('SELECT id, time, code FROM scans ORDER BY id').all();
     const pausedIntervals = db
       .prepare('SELECT from_time AS "from", to_time AS "to" FROM paused_intervals ORDER BY id')
       .all();
@@ -152,9 +140,9 @@ class SqliteStore {
         insertParticipant.run(p.id, p.name, p.gender, p.rfidCode, p.rfidAssignedAt || null, p.heatId, p.startNumber || null);
       }
 
-      const insertScan = db.prepare('INSERT INTO scans (id, time, code, excluded, exclude_reason) VALUES (?, ?, ?, ?, ?)');
+      const insertScan = db.prepare('INSERT INTO scans (id, time, code) VALUES (?, ?, ?)');
       for (const s of state.scans) {
-        insertScan.run(s.id, s.time, s.code, s.excluded ? 1 : 0, s.excludeReason || null);
+        insertScan.run(s.id, s.time, s.code);
       }
 
       const insertPaused = db.prepare(

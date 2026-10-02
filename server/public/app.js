@@ -1104,13 +1104,7 @@ function renderLog(rows) {
       const badge = row.counted
         ? '<span class="badge counted">Counted</span>'
         : '<span class="badge excluded">Excluded</span>';
-      const reasonCell = row.counted
-        ? ''
-        : row.excluded
-        ? `Excluded: ${escapeHtml(row.excludeReason)}`
-        : escapeHtml(reasonLabel(row.reason));
-      const excludeTitle = row.excluded ? 'Already excluded' : 'Exclude with a reason';
-      const excludeButton = `<button type="button" class="icon-button scan-exclude-button" data-id="${row.id}" title="${excludeTitle}" ${row.excluded ? 'disabled' : ''}><span class="exclude-arrow">→</span></button>`;
+      const reasonCell = row.counted ? '' : escapeHtml(reasonLabel(row.reason));
       tr.innerHTML = `
         <td>${formatTime(row.time)}</td>
         <td>${participantCell}</td>
@@ -1119,7 +1113,6 @@ function renderLog(rows) {
         <td class="hint">${reasonCell}</td>
         <td class="cell-inline">
           <button type="button" class="icon-button scan-edit-button" data-id="${row.id}" title="Edit time">✏️</button>
-          ${excludeButton}
           <button type="button" class="icon-button scan-delete-button" data-id="${row.id}" title="Delete">🗑</button>
         </td>
       `;
@@ -1137,7 +1130,6 @@ function reasonLabel(reason) {
     after_end: 'After end',
     paused: 'Paused',
     bounce: 'Too soon',
-    manually_excluded: 'Excluded',
   };
   return labels[reason] || 'Not counted';
 }
@@ -1311,27 +1303,6 @@ logTable.addEventListener('click', async (event) => {
         body: JSON.stringify({ time: new Date(timeValue).toISOString() }),
       });
       editingScanId = null;
-      await refreshLog();
-    } catch (error) {
-      alert(error.message);
-    }
-    return;
-  }
-
-  const excludeButton = event.target.closest('.scan-exclude-button');
-  if (excludeButton) {
-    const id = Number(excludeButton.dataset.id);
-    const reason = prompt('Why exclude this scan?');
-    if (reason === null) return; // cancelled
-    if (!reason.trim()) {
-      alert('A reason is required to exclude a scan.');
-      return;
-    }
-    try {
-      await api(`/api/scans/${id}/exclude`, {
-        method: 'POST',
-        body: JSON.stringify({ reason }),
-      });
       await refreshLog();
     } catch (error) {
       alert(error.message);

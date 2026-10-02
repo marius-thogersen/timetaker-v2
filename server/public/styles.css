@@ -614,13 +614,6 @@ tr.clickable-row:hover td { background: var(--border); }
   font-size: 0.95rem;
 }
 #logTable .scan-delete-button:hover { color: var(--error); }
-/* Exclude is red whenever it's actually clickable (an active, counted-or-
-   not-yet-decided scan), and plainly greyed out with a blocked cursor once
-   a scan is already excluded — no separate "re-include" action for now. */
-#logTable .scan-exclude-button:not(:disabled) { color: var(--error); }
-#logTable .scan-exclude-button:not(:disabled):hover { opacity: 0.8; }
-#logTable .scan-exclude-button:disabled { color: var(--dim); opacity: 0.4; cursor: not-allowed; }
-#logTable .scan-exclude-button .exclude-arrow { text-decoration: line-through; }
 #logTable .scan-save-button:hover { color: var(--accent); }
 
 .actions-menu {
