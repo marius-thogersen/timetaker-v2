@@ -140,38 +140,6 @@ function heatStartLabel(heat) {
 
 const DEFAULT_HEAT_TIME = '10:00';
 
-// Every heat start time is picked from a dropdown of 5-minute marks across
-// a full day (00:00, 00:05, ... 23:55) — 96 options, generated once and
-// reused for every heat row. This sidesteps a native <input type="time">
-// limitation: browsers' keyboard Up/Down arrows on the minute segment
-// always step by 1 minute, ignoring the `step` attribute entirely (only
-// clicking the tiny spinner arrows honors it), so there was no reliable
-// way to make a plain time input actually behave in 5-minute increments.
-const FIVE_MINUTE_TIME_OPTIONS = Array.from({ length: 24 * 12 }, (_, i) => {
-  const totalMinutes = i * 5;
-  const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-  const m = String(totalMinutes % 60).padStart(2, '0');
-  return `${h}:${m}`;
-});
-
-// Rounds an arbitrary HH:MM value to the nearest 5-minute mark, so a start
-// time saved off-grid (e.g. an old "now" press, or imported data) still
-// shows *something* selected in the dropdown instead of silently nothing.
-function nearestFiveMinuteMark(timeValue) {
-  const [h, m] = timeValue.split(':').map(Number);
-  const totalMinutes = h * 60 + m;
-  const rounded = Math.round(totalMinutes / 5) * 5;
-  const clamped = Math.max(0, Math.min(rounded, 23 * 60 + 55));
-  return FIVE_MINUTE_TIME_OPTIONS[clamped / 5];
-}
-
-function heatTimeOptionsHtml(selectedValue) {
-  const selected = nearestFiveMinuteMark(selectedValue);
-  return FIVE_MINUTE_TIME_OPTIONS.map(
-    (t) => `<option value="${t}" ${t === selected ? 'selected' : ''}>${t}</option>`
-  ).join('');
-}
-
 // Heats start out with no start time. Rather than show an empty field, we
 // silently save a sensible default (today's date, 10:00) the first time we
 // see an unset heat, so the UI never shows a blank picker — it's always
@@ -226,7 +194,7 @@ function renderHeatsList(heats, { force = false } = {}) {
           <td><input type="text" class="heat-name-input" data-heat-id="${heat.id}" value="${escapeHtml(heat.name)}" /></td>
           <td>
             <span class="cell-inline">
-              <select class="heat-time-input" data-heat-id="${heat.id}">${heatTimeOptionsHtml(heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME)}</select>
+              <input type="time" step="300" class="heat-time-input" data-heat-id="${heat.id}" value="${heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME}" />
               <button type="button" class="link-button heat-now-button" data-heat-id="${heat.id}">now</button>
             </span>
           </td>
@@ -934,11 +902,15 @@ heatsList.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ startAt }),
       });
-      // A <select>'s 'change' only fires once a full selection is made
-      // (the dropdown is already closed by then) — unlike the old native
-      // time input, there's no mid-edit moment to protect, so it's always
-      // safe to force a full re-render here.
-      await refreshState({ force: true });
+      // Unlike a text input, a native time input fires 'change' as soon
+      // as a segment (e.g. the minutes) is completed — while the user is
+      // still mid-edit and the field is still focused, not just on blur.
+      // Forcing a full re-render right then would tear down and rebuild
+      // this very input, killing its focus/cursor position while typing.
+      // Only force once focus has actually moved elsewhere (e.g. via Tab
+      // to another field) — same guard, just conditional on that instead
+      // of blanket-forcing.
+      await refreshState({ force: document.activeElement !== timeInput });
     } catch (error) {
       alert(error.message);
     }
