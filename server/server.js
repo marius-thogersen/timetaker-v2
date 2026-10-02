@@ -24,6 +24,16 @@ function persist() {
   store.save(state);
 }
 
+// Every console line gets a timestamp, so operators (and anyone reading a
+// redirected log file) can tell exactly when something happened, no matter
+// how long the server has been running unattended.
+function logLine(...args) {
+  console.log(`[${new Date().toISOString()}]`, ...args);
+}
+function logErrorLine(...args) {
+  console.error(`[${new Date().toISOString()}]`, ...args);
+}
+
 let lastScanReceivedAt = null;
 
 // ---------------------------------------------------------------------------
@@ -389,15 +399,15 @@ const httpServer = http.createServer(async (req, res) => {
     if (error instanceof race.DomainError) {
       return sendJson(res, 400, { error: error.message });
     }
-    console.error(error);
+    logErrorLine(error);
     return sendJson(res, 500, { error: 'internal error' });
   }
 });
 
 httpServer.listen(HTTP_PORT, HOST, () => {
-  console.log(`TimeTaker v2 running at http://${HOST}:${HTTP_PORT}`);
+  logLine(`TimeTaker v2 running at http://${HOST}:${HTTP_PORT}`);
 });
 
 scanServer.listen(SCAN_PORT, HOST, () => {
-  console.log(`Listening for RFID scans on ${HOST}:${SCAN_PORT}`);
+  logLine(`Listening for RFID scans on ${HOST}:${SCAN_PORT}`);
 });

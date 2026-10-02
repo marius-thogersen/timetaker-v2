@@ -30,6 +30,18 @@ def get_app_dir():
 APP_LOG_FILE = os.path.join(get_app_dir(), "app.log")
 SPOOL_FILE   = os.path.join(get_app_dir(), "pending_scans.json")
 
+def log_ts() -> str:
+    """Timestamp prefix for console/app.log lines, in the same local
+    timezone used for scan timestamps (unambiguous regardless of what the
+    reader PC's own clock/locale is set to)."""
+    return datetime.now(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S %z")
+
+def log_console(message):
+    """Prints a single timestamped line to stdout (the console, or app.log
+    when running as a frozen exe with no console — see the stdout/stderr
+    redirect above)."""
+    print(f"[{log_ts()}] {message}")
+
 # Loopback link to the TimeTaker desktop app. Must match SCAN_PORT in scan_server.rs.
 TIMETAKER_HOST = "127.0.0.1"
 TIMETAKER_PORT = 45677
@@ -107,11 +119,11 @@ def update_ui_log(widget, message, tag=None):
     widget.config(state='disabled')
 
 def log_event(message):
-    print(message)
+    log_console(message)
     ui_queue.put(("event", message, None))
 
 def log_submission(message):
-    print(f"SUBMITTED: {message}")
+    log_console(f"SUBMITTED: {message}")
     ui_queue.put(("submission", message, "success"))
 
 def drain_ui_queue(root):
@@ -273,7 +285,7 @@ class ScanSender(threading.Thread):
             with open(SPOOL_FILE, "w", encoding="utf-8") as handle:
                 json.dump(self._pending, handle)
         except OSError as error:
-            print(f"Could not persist queue: {error}")
+            log_console(f"Could not persist queue: {error}")
 
 
 def log_key(key):
@@ -470,7 +482,7 @@ def main():
     try:
         root.mainloop()
     except KeyboardInterrupt:
-        print("\nProgram terminated by user.")
+        log_console("Program terminated by user.")
         clean_exit(root)
 
 
