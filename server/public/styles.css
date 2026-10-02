@@ -40,6 +40,12 @@
 
 * { box-sizing: border-box; }
 
+/* Theme switch fades colors in instead of an instant flash — only color
+   properties, so it never delays layout-affecting changes. */
+*, *::before, *::after {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, fill 150ms ease;
+}
+
 body {
   margin: 0;
   font-family: var(--font);
@@ -124,6 +130,28 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 .menu-label {
   white-space: nowrap;
 }
+
+/* Plain glyph (☀/☾), explicitly colored via `color` (not emoji-presentation)
+   so it stays monochrome and matches the surrounding theme instead of
+   rendering as a colored emoji. */
+.theme-toggle-button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-emoji: text;
+}
+.theme-toggle-button:hover { color: var(--text); border-color: var(--text); }
+.theme-toggle-button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 
 .menu-divider {
   height: 1px;

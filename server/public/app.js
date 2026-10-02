@@ -96,7 +96,8 @@ const THEMES = ['dark', 'light'];
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  themeToggle.checked = theme === 'light';
+  themeToggle.textContent = theme === 'light' ? '☀' : '☾';
+  themeToggle.setAttribute('aria-pressed', String(theme === 'light'));
 }
 
 function initTheme() {
@@ -109,8 +110,8 @@ function initTheme() {
   applyTheme(prefersLight ? 'light' : 'dark');
 }
 
-themeToggle.addEventListener('change', () => {
-  const next = themeToggle.checked ? 'light' : 'dark';
+themeToggle.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 });
