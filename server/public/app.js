@@ -232,10 +232,12 @@ function heatMoveSelectHtml(participant, heats) {
 // One card per heat, each with its own participant table (padded to a
 // minimum number of rows so it's obvious where new sign-ups will land).
 function renderParticipantsByHeat(heats, participants) {
-  // Don't rebuild (and so wipe) an in-progress edit of the start number or
-  // RFID code fields — same focus-guard pattern as the heats list.
+  // Don't rebuild (and so wipe) an in-progress edit of the start number,
+  // RFID code, or heat-move fields — same focus-guard pattern as the heats
+  // list. Without this, the 1s poll could yank a <select> out from under
+  // an open dropdown mid-click.
   const active = document.activeElement;
-  const editableClasses = ['start-number-input', 'rfid-code-input'];
+  const editableClasses = ['start-number-input', 'rfid-code-input', 'heat-move-select'];
   if (active && active.classList && editableClasses.some((c) => active.classList.contains(c)) && participantsByHeat.contains(active)) {
     return;
   }
