@@ -259,7 +259,7 @@ function renderParticipantsByHeat(heats, participants) {
           <td>${escapeHtml(p.gender)}</td>
           <td><input type="text" class="rfid-code-input" data-id="${p.id}" placeholder="not set" value="${escapeHtml(p.rfidCode || '')}" /></td>
           <td>${heats.length > 1 ? heatMoveSelectHtml(p, heats) : ''}</td>
-          <td><button data-id="${p.id}" class="danger removeButton">Remove</button></td>
+          <td><button type="button" data-id="${p.id}" class="participant-remove-button">🗑</button></td>
         </tr>
       `)
       .join('');
@@ -509,7 +509,7 @@ async function refreshState() {
   rfidInput.disabled = !canEditParticipants;
   signupHeatInput.disabled = !canEditParticipants;
   signupForm.querySelector('button[type="submit"]').disabled = !canEditParticipants;
-  participantsByHeat.querySelectorAll('.removeButton').forEach((btn) => {
+  participantsByHeat.querySelectorAll('.participant-remove-button').forEach((btn) => {
     btn.disabled = !canEditParticipants;
   });
 
@@ -562,7 +562,7 @@ signupForm.addEventListener('submit', async (event) => {
 });
 
 participantsByHeat.addEventListener('click', async (event) => {
-  const button = event.target.closest('.removeButton');
+  const button = event.target.closest('.participant-remove-button');
   if (!button) return;
   await api(`/api/participants/${button.dataset.id}`, { method: 'DELETE' });
   await refreshState();

@@ -461,6 +461,20 @@ tr.clickable-row:hover td { background: var(--border); }
 }
 .heat-remove-button:hover:not(:disabled) { color: var(--error); border-color: var(--error); }
 
+.participant-remove-button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  font-weight: 400;
+  font-size: 0.95rem;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+}
+.participant-remove-button:hover:not(:disabled) { color: var(--error); border-color: var(--error); }
+
 .heat-group { margin: var(--space-5) 0; }
 
 .heat-group-title {
