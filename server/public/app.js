@@ -522,16 +522,24 @@ async function refreshState({ force = false } = {}) {
 
   const hasParticipants = state.participants.length > 0;
   const now = new Date();
-  const notYetDueHeat = state.heats.find((h) => h.startAt && new Date(h.startAt) > now);
+  // Block starting only if every heat is still scheduled for later — if even
+  // one heat is already due (or has no schedule at all), the race can start;
+  // heats that aren't due yet keep their own future startAt and simply won't
+  // accrue any laps until that time arrives (effectiveCutoffFor handles that
+  // per-heat, not this button).
+  const allHeatsNotYetDue = state.heats.length > 0 && state.heats.every((h) => h.startAt && new Date(h.startAt) > now);
+  const earliestNotYetDueHeat = allHeatsNotYetDue
+    ? state.heats.reduce((a, b) => (new Date(a.startAt) < new Date(b.startAt) ? a : b))
+    : null;
   const notStarted = state.status === 'signup';
   startButton.closest('.start-race-row').hidden = !notStarted;
-  startButton.disabled = !hasParticipants || Boolean(notYetDueHeat);
+  startButton.disabled = !hasParticipants || allHeatsNotYetDue;
   startHint.classList.remove('error');
   if (!hasParticipants) {
     startHint.textContent = 'Add at least one participant to start the race.';
     startHint.hidden = !notStarted;
-  } else if (notYetDueHeat) {
-    startHint.textContent = `${notYetDueHeat.name} is scheduled to start at ${new Date(notYetDueHeat.startAt).toLocaleString()} — wait until then, or adjust its start time on the Signup tab.`;
+  } else if (allHeatsNotYetDue) {
+    startHint.textContent = `${earliestNotYetDueHeat.name} is scheduled to start at ${new Date(earliestNotYetDueHeat.startAt).toLocaleString()} — wait until then, or adjust its start time on the Signup tab.`;
     startHint.hidden = !notStarted;
   } else {
     startHint.hidden = true;
@@ -722,8 +730,8 @@ async function checkAutoStart() {
   if (latestStatus !== 'signup') return;
   if (latestParticipants.length === 0) return;
   const now = new Date();
-  const notYetDue = latestHeats.some((h) => h.startAt && new Date(h.startAt) > now);
-  if (notYetDue) return;
+  const allNotYetDue = latestHeats.length > 0 && latestHeats.every((h) => h.startAt && new Date(h.startAt) > now);
+  if (allNotYetDue) return;
   autoStarting = true;
   try {
     await attemptStartRace();

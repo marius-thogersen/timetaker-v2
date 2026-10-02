@@ -320,16 +320,18 @@ function startRace(race, { includePreStartScans = false } = {}) {
   if (race.participants.length === 0) {
     throw new DomainError('Add at least one participant before starting.');
   }
-  // A heat's configured start time is a schedule, not just a cutoff: if an
-  // organizer set one for later today (or any future moment), pressing
-  // "Start" early must not silently go live and wait around doing nothing —
-  // it should refuse outright, so the race only ever starts once its
-  // planned time has actually arrived.
+  // A heat's configured start time is a schedule, not just a cutoff: if
+  // *every* heat is scheduled for later, pressing "Start" early must not
+  // silently go live and wait around doing nothing — refuse outright. But
+  // if even one heat is already due, the race can start now; heats still
+  // scheduled for later simply won't accrue laps until their own time
+  // arrives (effectiveCutoffFor enforces that per-heat).
   const now = new Date();
-  const notYetDue = race.heats.find((heat) => heat.startAt && new Date(heat.startAt) > now);
-  if (notYetDue) {
+  const allNotYetDue = race.heats.length > 0 && race.heats.every((heat) => heat.startAt && new Date(heat.startAt) > now);
+  if (allNotYetDue) {
+    const earliest = race.heats.reduce((a, b) => (new Date(a.startAt) < new Date(b.startAt) ? a : b));
     throw new DomainError(
-      `${notYetDue.name} is scheduled to start at ${new Date(notYetDue.startAt).toLocaleString()}, which hasn't arrived yet.`
+      `${earliest.name} is scheduled to start at ${new Date(earliest.startAt).toLocaleString()}, which hasn't arrived yet.`
     );
   }
   race.status = 'started';

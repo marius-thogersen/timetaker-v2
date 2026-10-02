@@ -123,11 +123,15 @@ test('startRace keeps a start time that was preset during signup', () => {
   assert.equal(race.heats[0].startAt, '2024-01-01T09:00:00.000Z');
 });
 
-test('startRace refuses to start while a heat is scheduled for later, but allows it once that time arrives', (t) => {
+test('startRace refuses to start while every heat is scheduled for later, but allows it once that time arrives', (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T09:00:00.000Z') });
   const race = createRace();
   addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  // createRace() seeds two default heats — schedule both for later so
+  // there's truly nothing due yet (an untouched heat with no startAt at
+  // all would otherwise count as "due now" and let the race start).
   setHeatStartTime(race, race.heats[0].id, '2024-01-01T10:00:00.000Z'); // an hour from "now"
+  setHeatStartTime(race, race.heats[1].id, '2024-01-01T10:00:00.000Z');
 
   assert.throws(() => startRace(race), /hasn't arrived yet/);
   assert.equal(race.status, 'signup');
@@ -135,6 +139,31 @@ test('startRace refuses to start while a heat is scheduled for later, but allows
   t.mock.timers.tick(60 * 60 * 1000); // now 10:00 — the scheduled time has arrived
   startRace(race);
   assert.equal(race.status, 'started');
+});
+
+test('startRace allows starting once at least one heat is due, even if another heat is scheduled later', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T09:00:00.000Z') });
+  const race = createRace();
+  addParticipant(race, { name: 'Ada', rfidCode: '0000000001', heatId: race.heats[0].id });
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T09:00:00.000Z'); // due now
+  setHeatStartTime(race, race.heats[1].id, '2024-01-01T11:00:00.000Z'); // an hour later
+
+  startRace(race);
+  assert.equal(race.status, 'started');
+  assert.equal(race.heats[0].startAt, '2024-01-01T09:00:00.000Z');
+  // Heat 2 keeps its own future schedule rather than being forced to "now".
+  assert.equal(race.heats[1].startAt, '2024-01-01T11:00:00.000Z');
+});
+
+test('startRace refuses when every heat is scheduled for later', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T09:00:00.000Z') });
+  const race = createRace();
+  addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  setHeatStartTime(race, race.heats[0].id, '2024-01-01T10:00:00.000Z');
+  setHeatStartTime(race, race.heats[1].id, '2024-01-01T11:00:00.000Z');
+
+  assert.throws(() => startRace(race), /hasn't arrived yet/);
+  assert.equal(race.status, 'signup');
 });
 
 test('scans recorded before Start is actually pressed never count by default, even though a heat\'s startAt already passed', (t) => {
