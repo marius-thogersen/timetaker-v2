@@ -26,6 +26,7 @@ const {
   removeScan,
   getLeaderboard,
   getScanHistory,
+  getLapHistory,
   DomainError,
 } = require('../server/domain/race');
 
@@ -401,6 +402,25 @@ test('getLeaderboard also applies the minimum lap window to the first lap, measu
   assert.equal(board[0].lastLapDurationMs, 6 * 60 * 1000);
   history = getScanHistory(race, { participantId: ada.id });
   assert.equal(history[0].counted, true);
+});
+
+test('getLapHistory lists every counted lap in order with its duration, and rejects an unknown participant', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2024-01-01T00:00:00.000Z') });
+  const race = createRace();
+  const ada = addParticipant(race, { name: 'Ada', rfidCode: '0000000001' });
+  startRace(race);
+  race.heats[0].startAt = '2024-01-01T10:00:00.000Z';
+
+  recordScan(race, { time: '2024-01-01T10:05:00.000Z', code: ada.rfidCode }); // lap 1: 5 min
+  recordScan(race, { time: '2024-01-01T10:05:02.000Z', code: ada.rfidCode }); // bounce, ignored
+  recordScan(race, { time: '2024-01-01T10:08:00.000Z', code: ada.rfidCode }); // lap 2: 3 min
+
+  const laps = getLapHistory(race, ada.id);
+  assert.equal(laps.length, 2);
+  assert.deepEqual(laps[0], { lapNumber: 1, time: '2024-01-01T10:05:00.000Z', durationMs: 5 * 60 * 1000 });
+  assert.deepEqual(laps[1], { lapNumber: 2, time: '2024-01-01T10:08:00.000Z', durationMs: 3 * 60 * 1000 });
+
+  assert.throws(() => getLapHistory(race, 999), /No participant with id/);
 });
 
 test('getLeaderboard computes the most recent lap duration from the previous lap or race start', (t) => {

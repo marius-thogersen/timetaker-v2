@@ -508,6 +508,7 @@ function computeLaps(eligibleScans, cutoff, minLapSeconds) {
   let lastLapAt = null;
   let lastLapDurationMs = null;
   const countedScanIds = new Set();
+  const laps = [];
 
   for (const scan of eligibleScans) {
     const isFirst = lastLapAt === null;
@@ -520,10 +521,28 @@ function computeLaps(eligibleScans, cutoff, minLapSeconds) {
       lastLapDurationMs = referenceTime ? new Date(scan.time) - new Date(referenceTime) : null;
       lastLapAt = scan.time;
       countedScanIds.add(scan.id);
+      laps.push({ lapNumber: rounds, time: scan.time, durationMs: lastLapDurationMs });
     }
   }
 
-  return { rounds, lastLapAt, lastLapDurationMs, countedScanIds };
+  return { rounds, lastLapAt, lastLapDurationMs, countedScanIds, laps };
+}
+
+/** Lap-by-lap breakdown for one participant: every counted lap, in order,
+ *  with its duration (time since the previous lap, or since the heat's
+ *  start time for the first one) — the detail behind their leaderboard
+ *  round count, for a "lap details" view. */
+function getLapHistory(race, participantId, { minLapSeconds } = {}) {
+  const participant = race.participants.find((p) => p.id === participantId);
+  if (!participant) {
+    throw new DomainError(`No participant with id ${participantId}.`);
+  }
+  const effectiveMinLapSeconds = minLapSeconds ?? race.minLapSeconds ?? DEFAULT_MIN_LAP_SECONDS;
+  const heat = findHeat(race, participant.heatId);
+  const cutoff = heat ? heat.startAt : null;
+  const eligibleScans = eligibleScansForParticipant(race, participant);
+  const { laps } = computeLaps(eligibleScans, cutoff, effectiveMinLapSeconds);
+  return laps;
 }
 
 /** Ranked list of participants by completed rounds (laps), including the
@@ -660,4 +679,5 @@ module.exports = {
   removeScan,
   getLeaderboard,
   getScanHistory,
+  getLapHistory,
 };

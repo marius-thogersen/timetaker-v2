@@ -220,6 +220,11 @@ const httpServer = http.createServer(async (req, res) => {
       return sendJson(res, 200, race.getLeaderboard(state));
     }
 
+    const lapsMatch = url.pathname.match(/^\/api\/participants\/(\d+)\/laps$/);
+    if (lapsMatch && req.method === 'GET') {
+      return sendJson(res, 200, race.getLapHistory(state, Number(lapsMatch[1])));
+    }
+
     if (url.pathname === '/api/scans' && req.method === 'GET') {
       const participantIdParam = url.searchParams.get('participantId');
       const participantId = participantIdParam ? Number(participantIdParam) : undefined;
