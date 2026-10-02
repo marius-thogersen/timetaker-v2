@@ -599,6 +599,7 @@ tr.clickable-row:hover td { background: var(--border); }
   gap: var(--space-2);
   padding: var(--space-2);
 }
+.control-panel[hidden] { display: none; }
 
 .control-button {
   display: flex;
