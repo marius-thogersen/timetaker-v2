@@ -110,17 +110,8 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
   cursor: default;
 }
 .menu-item.wake-lock-toggle .wake-lock-label,
-.menu-item.theme-row > span:not(.menu-icon) {
+.menu-item.theme-row span {
   flex: 1;
-}
-.theme-row select {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-3);
-  font-size: 0.85rem;
-  cursor: pointer;
 }
 
 .menu-divider {
@@ -634,6 +625,7 @@ tr.clickable-row:hover td { background: var(--border); }
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   z-index: 10;
 }
+.actions-menu[hidden] { display: none; }
 
 .menu-item {
   display: flex;
@@ -654,18 +646,6 @@ tr.clickable-row:hover td { background: var(--border); }
   box-sizing: border-box;
 }
 .menu-item:hover { background: var(--border); }
-
-/* Icons get a fixed-width column so every menu item's label starts at the
-   same horizontal position, instead of drifting with each emoji's own
-   natural width. */
-.menu-icon {
-  flex: none;
-  width: 1.4rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
 
 /* ---------- Race control panel (play/pause, reset, end) ---------- */
 /* A stack of bold, color-coded, icon-led buttons inside the ⋮ dropdown —

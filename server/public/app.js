@@ -4,7 +4,7 @@ const statusPill = document.getElementById('statusPill');
 const statusBar = document.getElementById('statusBar');
 const signupView = document.getElementById('signupView');
 const raceView = document.getElementById('raceView');
-const themeSelect = document.getElementById('themeSelect');
+const themeToggle = document.getElementById('themeToggle');
 
 const signupForm = document.getElementById('signupForm');
 const nameInput = document.getElementById('nameInput');
@@ -96,7 +96,7 @@ const THEMES = ['dark', 'light'];
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  themeSelect.value = theme;
+  themeToggle.checked = theme === 'light';
 }
 
 function initTheme() {
@@ -109,8 +109,8 @@ function initTheme() {
   applyTheme(prefersLight ? 'light' : 'dark');
 }
 
-themeSelect.addEventListener('change', () => {
-  const next = THEMES.includes(themeSelect.value) ? themeSelect.value : 'dark';
+themeToggle.addEventListener('change', () => {
+  const next = themeToggle.checked ? 'light' : 'dark';
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 });
