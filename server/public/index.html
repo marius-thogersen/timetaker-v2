@@ -131,40 +131,23 @@
     </section>
 
     <section id="raceHistoryView" hidden>
-      <h2>Race history</h2>
-
-      <div id="currentRaceCard" class="settings-card">
-        <div class="race-toolbar">
-          <h3 class="log-title">Current race <span id="currentRaceStatusLabel" class="pill"></span></h3>
-          <span class="spacer"></span>
-          <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
-          <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
-          <button id="newRaceFromHistoryButton" type="button" class="menu-item">New race from this template…</button>
-        </div>
-        <table id="currentRaceLeaderboardTable">
-          <thead>
-            <tr><th>Rank</th><th>Bib</th><th>Name</th><th>Heat</th><th>Rounds</th><th>Distance</th><th>Last lap</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <p id="raceHistoryEmpty" class="hint" hidden>No past races yet — use "New race from this template…" (available once a race has ended) to archive one here.</p>
-      <table id="archiveTable">
+      <h2>Races</h2>
+      <table id="racesTable">
         <thead>
-          <tr><th>Ended</th><th>Participants</th><th></th></tr>
+          <tr><th>Race</th><th>Status</th><th>Participants</th></tr>
         </thead>
         <tbody></tbody>
       </table>
 
-      <div id="archiveDetailCard" class="settings-card" hidden>
+      <div id="selectedRaceCard" class="settings-card">
         <div class="race-toolbar">
-          <h3 id="archiveDetailTitle" class="log-title"></h3>
+          <h3 id="selectedRaceTitle" class="log-title">Current race <span id="selectedRaceStatusLabel" class="pill"></span></h3>
           <span class="spacer"></span>
-          <a id="archiveExportJsonLink" class="menu-item" href="#">⬇ JSON</a>
-          <a id="archiveExportCsvLink" class="menu-item" href="#">⬇ CSV</a>
+          <a id="selectedRaceExportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
+          <a id="selectedRaceExportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
+          <button id="newRaceFromHistoryButton" type="button" class="menu-item">New race from this template…</button>
         </div>
-        <table id="archiveLeaderboardTable">
+        <table id="selectedRaceLeaderboardTable">
           <thead>
             <tr><th>Rank</th><th>Bib</th><th>Name</th><th>Heat</th><th>Rounds</th><th>Distance</th><th>Last lap</th></tr>
           </thead>

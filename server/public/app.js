@@ -37,15 +37,12 @@ const liveRaceNotice = document.getElementById('liveRaceNotice');
 
 const raceHistoryButton = document.getElementById('raceHistoryButton');
 const raceHistoryView = document.getElementById('raceHistoryView');
-const raceHistoryEmpty = document.getElementById('raceHistoryEmpty');
-const archiveTable = document.querySelector('#archiveTable tbody');
-const archiveDetailCard = document.getElementById('archiveDetailCard');
-const archiveDetailTitle = document.getElementById('archiveDetailTitle');
-const archiveLeaderboardTable = document.querySelector('#archiveLeaderboardTable tbody');
-const archiveExportJsonLink = document.getElementById('archiveExportJsonLink');
-const archiveExportCsvLink = document.getElementById('archiveExportCsvLink');
-const currentRaceStatusLabel = document.getElementById('currentRaceStatusLabel');
-const currentRaceLeaderboardTable = document.querySelector('#currentRaceLeaderboardTable tbody');
+const racesTable = document.querySelector('#racesTable tbody');
+const selectedRaceTitle = document.getElementById('selectedRaceTitle');
+const selectedRaceStatusLabel = document.getElementById('selectedRaceStatusLabel');
+const selectedRaceLeaderboardTable = document.querySelector('#selectedRaceLeaderboardTable tbody');
+const selectedRaceExportJsonLink = document.getElementById('selectedRaceExportJsonLink');
+const selectedRaceExportCsvLink = document.getElementById('selectedRaceExportCsvLink');
 const newRaceFromHistoryButton = document.getElementById('newRaceFromHistoryButton');
 
 const navSignupButton = document.getElementById('navSignupButton');
@@ -1189,15 +1186,13 @@ function setPage(page) {
 
 raceHistoryButton.addEventListener('click', () => setPage('raceHistory'));
 
-async function refreshRaceHistory() {
-  currentRaceStatusLabel.textContent = STATUS_LABELS[latestStatus] || latestStatus;
-  currentRaceStatusLabel.classList.toggle('started', latestStatus === 'started');
-  currentRaceStatusLabel.classList.toggle('stopped', latestStatus === 'stopped');
-  currentRaceStatusLabel.classList.toggle('ended', latestStatus === 'ended');
-  newRaceFromHistoryButton.disabled = latestStatus !== 'ended';
+// Which race is shown in the detail card below the table: 'current' for the
+// live race, or an archive id. Starts on the live race, same as before this
+// was made selectable.
+let selectedRaceId = 'current';
 
-  const currentLeaderboard = await api('/api/leaderboard');
-  currentRaceLeaderboardTable.innerHTML = currentLeaderboard
+function renderLeaderboardRows(leaderboard) {
+  return leaderboard
     .map((row, index) => {
       const lapDuration = row.lastLapDurationMs != null ? formatDuration(row.lastLapDurationMs) : '—';
       const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
@@ -1214,57 +1209,75 @@ async function refreshRaceHistory() {
       `;
     })
     .join('');
-
-  const archives = await api('/api/archive');
-  raceHistoryEmpty.hidden = archives.length > 0;
-  archiveTable.innerHTML = archives
-    .map(
-      (a) => `
-        <tr>
-          <td>${formatDateTime(a.archivedAt)}</td>
-          <td>${a.participantCount}</td>
-          <td>
-            <button type="button" class="menu-item archive-view-button" data-id="${a.id}" data-label="${escapeHtml(a.label)}">View results</button>
-            <a class="menu-item" href="/api/archive/${a.id}/export.json">⬇ JSON</a>
-            <a class="menu-item" href="/api/archive/${a.id}/export.csv">⬇ CSV</a>
-          </td>
-        </tr>
-      `
-    )
-    .join('');
-  if (!archives.some((a) => String(a.id) === archiveDetailCard.dataset.archiveId)) {
-    archiveDetailCard.hidden = true;
-  }
 }
 
-archiveTable.addEventListener('click', async (event) => {
-  const button = event.target.closest('.archive-view-button');
-  if (!button) return;
-  const id = button.dataset.id;
-  const leaderboard = await api(`/api/archive/${id}/leaderboard`);
-  archiveDetailCard.hidden = false;
-  archiveDetailCard.dataset.archiveId = id;
-  archiveDetailTitle.textContent = `Results — ${button.dataset.label}`;
-  archiveExportJsonLink.href = `/api/archive/${id}/export.json`;
-  archiveExportCsvLink.href = `/api/archive/${id}/export.csv`;
-  archiveLeaderboardTable.innerHTML = leaderboard
-    .map((row, index) => {
-      const lapDuration = row.lastLapDurationMs != null ? formatDuration(row.lastLapDurationMs) : '—';
-      const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
+async function refreshRaceHistory() {
+  const archives = await api('/api/archive');
+
+  const rows = [
+    {
+      id: 'current',
+      label: 'Current race',
+      status: latestStatus,
+      participantCount: latestParticipants.length,
+    },
+    ...archives.map((a) => ({ id: String(a.id), label: a.label, status: 'ended', participantCount: a.participantCount })),
+  ];
+
+  racesTable.innerHTML = rows
+    .map((row) => {
+      const statusText = row.id === 'current' ? STATUS_LABELS[row.status] || row.status : 'Ended';
+      const statusClass = row.id === 'current' ? row.status : 'ended';
       return `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${row.startNumber ?? '—'}</td>
-          <td>${escapeHtml(row.name)}</td>
-          <td>${escapeHtml(row.heatName || '')}</td>
-          <td>${row.rounds}</td>
-          <td>${distance}</td>
-          <td>${lapDuration}</td>
+        <tr class="race-row ${String(selectedRaceId) === row.id ? 'selected' : ''}" data-id="${row.id}">
+          <td>${escapeHtml(row.label)}</td>
+          <td><span class="pill ${statusClass}">${escapeHtml(statusText)}</span></td>
+          <td>${row.participantCount}</td>
         </tr>
       `;
     })
     .join('');
+
+  await renderSelectedRace();
+}
+
+async function renderSelectedRace() {
+  if (selectedRaceId === 'current') {
+    selectedRaceTitle.firstChild.textContent = 'Current race ';
+    selectedRaceStatusLabel.textContent = STATUS_LABELS[latestStatus] || latestStatus;
+    selectedRaceStatusLabel.className = `pill ${latestStatus}`;
+    newRaceFromHistoryButton.hidden = false;
+    newRaceFromHistoryButton.disabled = latestStatus !== 'ended';
+    selectedRaceExportJsonLink.href = '/api/export/leaderboard.json';
+    selectedRaceExportCsvLink.href = '/api/export/leaderboard.csv';
+    const leaderboard = await api('/api/leaderboard');
+    selectedRaceLeaderboardTable.innerHTML = renderLeaderboardRows(leaderboard);
+    return;
+  }
+
+  const archives = await api('/api/archive');
+  const archive = archives.find((a) => String(a.id) === String(selectedRaceId));
+  if (!archive) {
+    selectedRaceId = 'current';
+    return renderSelectedRace();
+  }
+  selectedRaceTitle.firstChild.textContent = `${archive.label} `;
+  selectedRaceStatusLabel.textContent = 'Ended';
+  selectedRaceStatusLabel.className = 'pill ended';
+  newRaceFromHistoryButton.hidden = true;
+  selectedRaceExportJsonLink.href = `/api/archive/${archive.id}/export.json`;
+  selectedRaceExportCsvLink.href = `/api/archive/${archive.id}/export.csv`;
+  const leaderboard = await api(`/api/archive/${archive.id}/leaderboard`);
+  selectedRaceLeaderboardTable.innerHTML = renderLeaderboardRows(leaderboard);
+}
+
+racesTable.addEventListener('click', (event) => {
+  const row = event.target.closest('.race-row');
+  if (!row) return;
+  selectedRaceId = row.dataset.id;
+  refreshRaceHistory();
 });
+
 
 navSignupButton.addEventListener('click', () => setPage('signup'));
 navRaceButton.addEventListener('click', () => setPage('race'));

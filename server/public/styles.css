@@ -434,6 +434,10 @@ tbody tr.empty-row td { color: var(--dim); font-weight: 400; }
 tr.clickable-row { cursor: pointer; }
 tr.clickable-row:hover td { background: var(--border); }
 
+tr.race-row { cursor: pointer; }
+tr.race-row:hover td { background: var(--border); }
+tr.race-row.selected td { background: rgba(0, 212, 255, 0.1); border-bottom-color: var(--accent); }
+
 /* ---------- Modal (lap details) ---------- */
 
 .modal-overlay {
