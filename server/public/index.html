@@ -12,15 +12,15 @@
     <h1>TimeTaker</h1>
     <span id="statusPill" class="pill">Signup</span>
     <span class="spacer"></span>
-    <button id="raceHistoryButton" type="button" class="header-button" title="View past ended races, their final results, and export them">📜 Race history</button>
-    <label class="wake-lock-toggle" title="Keep this screen awake while the page is open (useful for unattended races)">
+    <button id="raceHistoryButton" type="button" class="header-button">📜 Race history</button>
+    <label class="wake-lock-toggle">
       <span class="wake-lock-label">Keep screen awake</span>
       <span class="switch">
         <input type="checkbox" id="wakeLockToggle" />
         <span class="switch-track"><span class="switch-thumb"></span></span>
       </span>
     </label>
-    <select id="themeSelect" class="theme-select" title="Choose a color theme" aria-label="Choose a color theme">
+    <select id="themeSelect" class="theme-select" aria-label="Choose a color theme">
       <option value="dark">🌙 Dark</option>
       <option value="light">☀️ Light</option>
     </select>
@@ -34,7 +34,7 @@
 
   <main>
     <section id="signupView">
-      <h2>Sign up participants <span class="info-icon" tabindex="0" title="Focus the RFID field and scan a chip — it types the code and submits automatically.">ⓘ</span></h2>
+      <h2>Sign up participants</h2>
       <p id="liveRaceNotice" class="notice" hidden>⏱ Race is live — switch to the Race tab to watch the leaderboard, or stop the race to add or remove participants.</p>
 
       <fieldset id="raceSettingsCard" class="settings-card">
@@ -45,7 +45,7 @@
             <input type="number" id="lapDistanceInput" min="1" step="1" placeholder="e.g. 400" />
           </label>
           <label class="lap-distance-field">
-            Minimum lap time (mm:ss) <span class="info-icon" tabindex="0" title="Two scans of the same chip closer together than this are treated as one lap — raise it if riders sometimes trigger a double scan.">ⓘ</span>
+            Minimum lap time (mm:ss)
             <span class="cell-inline">
               <input type="number" id="minLapMinutesInput" min="0" step="1" placeholder="0" style="width:54px" /> m
               <input type="number" id="minLapSecondsOnlyInput" min="0" max="59" step="1" placeholder="5" style="width:54px" /> s
@@ -56,7 +56,7 @@
       </fieldset>
 
       <fieldset id="heatsCard" class="settings-card">
-        <legend>Heats (start groups) <span class="info-icon" tabindex="0" title="Heats share one race date, each with its own start time (and an optional duration), so groups can start at different times but still share one leaderboard. Scans outside a heat's window aren't counted for its participants.">ⓘ</span></legend>
+        <legend>Heats (start groups)</legend>
         <label class="race-date-field">
           Race date
           <input type="date" id="raceDateInput" />
@@ -110,7 +110,7 @@
       <div class="race-toolbar">
         <span class="spacer"></span>
         <div class="menu-wrapper">
-          <button id="actionsMenuButton" type="button" class="icon-button" title="Race actions" aria-haspopup="true" aria-expanded="false">⋮</button>
+          <button id="actionsMenuButton" type="button" class="icon-button" aria-haspopup="true" aria-expanded="false">⋮</button>
           <div id="actionsMenu" class="actions-menu" hidden>
             <button id="resetButton" type="button" class="menu-item danger-text">Reset rounds…</button>
             <button id="stopResumeButton" type="button" class="menu-item">Stop race</button>
@@ -131,7 +131,7 @@
           <span class="spacer"></span>
           <a id="exportJsonLink" class="menu-item" href="/api/export/leaderboard.json">⬇ Export (JSON)</a>
           <a id="exportCsvLink" class="menu-item" href="/api/export/leaderboard.csv">⬇ Export (CSV)</a>
-          <button id="newRaceFromHistoryButton" type="button" class="menu-item" title="The current race must be ended first (via the Race tab menu) before it can be used as a template.">New race from this template…</button>
+          <button id="newRaceFromHistoryButton" type="button" class="menu-item">New race from this template…</button>
         </div>
         <table id="currentRaceLeaderboardTable">
           <thead>
@@ -196,7 +196,7 @@
       <div class="race-toolbar">
         <h3 id="lapDetailName" class="log-title"></h3>
         <span class="spacer"></span>
-        <button id="lapDetailCloseButton" type="button" class="icon-button" title="Close">✕</button>
+        <button id="lapDetailCloseButton" type="button" class="icon-button">✕</button>
       </div>
       <p id="lapDetailMeta" class="hint"></p>
       <table id="lapDetailTable">

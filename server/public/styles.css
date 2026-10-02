@@ -215,29 +215,6 @@ main h2 {
 
 .hint { color: var(--dim); font-size: 0.88rem; margin: var(--space-2) 0 var(--space-4); }
 
-/* Small hoverable "info" marker for explanatory text that would otherwise
-   clutter the page as a permanent paragraph — the full text lives in the
-   title attribute (native tooltip on hover/focus). */
-.info-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--dim);
-  color: var(--dim);
-  font-size: 0.7rem;
-  font-style: normal;
-  cursor: help;
-  vertical-align: middle;
-}
-.info-icon:hover, .info-icon:focus {
-  color: var(--text);
-  border-color: var(--text);
-  outline: none;
-}
-
 .notice {
   background: rgba(255, 176, 32, 0.12);
   border: 1px solid var(--warning);

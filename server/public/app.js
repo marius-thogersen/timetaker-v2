@@ -204,7 +204,7 @@ function renderHeatsList(heats) {
           </td>
           <td class="numeric">${participantCount}</td>
           <td>
-            <button type="button" class="heat-remove-button" data-heat-id="${heat.id}" ${canRemove ? '' : 'disabled'} title="${canRemove ? 'Remove heat' : 'Move participants out first, or keep at least one heat'}">✕</button>
+            <button type="button" class="heat-remove-button" data-heat-id="${heat.id}" ${canRemove ? '' : 'disabled'}>✕</button>
           </td>
         </tr>
       `;
@@ -301,7 +301,7 @@ function renderLeaderboard(heats, rows) {
       const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
       const reference = row.lastLapAt || (heat && heat.startAt) || null;
       return `
-        <tr class="clickable-row" data-participant-id="${row.id}" title="View lap details">
+        <tr class="clickable-row" data-participant-id="${row.id}">
           <td>${index + 1}</td>
           <td>${row.startNumber ?? '—'}</td>
           <td>${escapeHtml(row.name)}</td>
