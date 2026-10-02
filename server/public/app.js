@@ -516,10 +516,21 @@ async function refreshState({ force = false } = {}) {
   });
 
   const hasParticipants = state.participants.length > 0;
+  const now = new Date();
+  const notYetDueHeat = state.heats.find((h) => h.startAt && new Date(h.startAt) > now);
   const notStarted = state.status === 'signup';
   startButton.closest('.start-race-row').hidden = !notStarted;
-  startButton.disabled = !hasParticipants;
-  startHint.hidden = !(notStarted && !hasParticipants);
+  startButton.disabled = !hasParticipants || Boolean(notYetDueHeat);
+  startHint.classList.remove('error');
+  if (!hasParticipants) {
+    startHint.textContent = 'Add at least one participant to start the race.';
+    startHint.hidden = !notStarted;
+  } else if (notYetDueHeat) {
+    startHint.textContent = `${notYetDueHeat.name} is scheduled to start at ${new Date(notYetDueHeat.startAt).toLocaleString()} — wait until then, or adjust its start time on the Signup tab.`;
+    startHint.hidden = !notStarted;
+  } else {
+    startHint.hidden = true;
+  }
 
   raceNotStartedNotice.hidden = state.status !== 'signup';
   raceEndedNotice.hidden = state.status !== 'ended';
@@ -616,13 +627,18 @@ participantsByHeat.addEventListener('change', async (event) => {
 });
 
 startButton.addEventListener('click', async () => {
-  showError('');
   try {
     await api('/api/race/start', { method: 'POST' });
     await refreshState();
     setPage('race');
   } catch (error) {
-    showError(error.message);
+    // Rare: the disabled-state check above already covers "no participants"
+    // and "a heat isn't due yet", but a heat's start time can tick over
+    // between render and click — show it right here on the race page,
+    // not in the (now hidden) signup page's error box.
+    startHint.textContent = error.message;
+    startHint.classList.add('error');
+    startHint.hidden = false;
   }
 });
 
