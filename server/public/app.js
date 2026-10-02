@@ -41,6 +41,9 @@ const archiveDetailTitle = document.getElementById('archiveDetailTitle');
 const archiveLeaderboardTable = document.querySelector('#archiveLeaderboardTable tbody');
 const archiveExportJsonLink = document.getElementById('archiveExportJsonLink');
 const archiveExportCsvLink = document.getElementById('archiveExportCsvLink');
+const currentRaceStatusLabel = document.getElementById('currentRaceStatusLabel');
+const currentRaceLeaderboardTable = document.querySelector('#currentRaceLeaderboardTable tbody');
+const newRaceFromHistoryButton = document.getElementById('newRaceFromHistoryButton');
 
 const navSignupButton = document.getElementById('navSignupButton');
 const navRaceButton = document.getElementById('navRaceButton');
@@ -57,6 +60,13 @@ const lapDistanceInput = document.getElementById('lapDistanceInput');
 const minLapMinutesInput = document.getElementById('minLapMinutesInput');
 const minLapSecondsOnlyInput = document.getElementById('minLapSecondsOnlyInput');
 const raceSettingsFeedback = document.getElementById('raceSettingsFeedback');
+
+const lapDetailOverlay = document.getElementById('lapDetailOverlay');
+const lapDetailName = document.getElementById('lapDetailName');
+const lapDetailMeta = document.getElementById('lapDetailMeta');
+const lapDetailTable = document.querySelector('#lapDetailTable tbody');
+const lapDetailEmpty = document.getElementById('lapDetailEmpty');
+const lapDetailCloseButton = document.getElementById('lapDetailCloseButton');
 
 const THEME_KEY = 'timetaker-theme';
 const MIN_PARTICIPANT_ROWS = 3;
@@ -291,7 +301,7 @@ function renderLeaderboard(heats, rows) {
       const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
       const reference = row.lastLapAt || (heat && heat.startAt) || null;
       return `
-        <tr>
+        <tr class="clickable-row" data-participant-id="${row.id}" title="View lap details">
           <td>${index + 1}</td>
           <td>${row.startNumber ?? '—'}</td>
           <td>${escapeHtml(row.name)}</td>
@@ -326,6 +336,50 @@ function updateTimeOnCourse() {
     cell.textContent = formatDuration(Date.now() - new Date(ref).getTime());
   });
 }
+
+// Clicking a leaderboard row opens a modal with that participant's full
+// lap-by-lap breakdown — the detail behind their round count.
+async function openLapDetail(participantId) {
+  const numericId = Number(participantId);
+  const participant = latestParticipants.find((p) => p.id === numericId);
+  if (!participant) return;
+
+  lapDetailName.textContent = participant.name;
+  lapDetailMeta.textContent = `Gender: ${participant.gender} · RFID code: ${participant.rfidCode || '—'} · Heat: ${heatName(participant.heatId)}`;
+  lapDetailOverlay.hidden = false;
+
+  const laps = await api(`/api/participants/${numericId}/laps`);
+  lapDetailEmpty.hidden = laps.length > 0;
+  lapDetailTable.innerHTML = laps
+    .map(
+      (lap) => `
+        <tr>
+          <td>${lap.lapNumber}</td>
+          <td>${formatTime(lap.time)}</td>
+          <td>${lap.durationMs != null ? formatDuration(lap.durationMs) : '—'}</td>
+        </tr>
+      `
+    )
+    .join('');
+}
+
+function closeLapDetail() {
+  lapDetailOverlay.hidden = true;
+}
+
+leaderboardByHeat.addEventListener('click', (event) => {
+  const row = event.target.closest('.clickable-row');
+  if (!row) return;
+  openLapDetail(row.dataset.participantId);
+});
+
+lapDetailCloseButton.addEventListener('click', closeLapDetail);
+lapDetailOverlay.addEventListener('click', (event) => {
+  if (event.target === lapDetailOverlay) closeLapDetail();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !lapDetailOverlay.hidden) closeLapDetail();
+});
 
 function escapeHtml(value) {
   return String(value)
@@ -412,14 +466,15 @@ function showError(message) {
   signupError.hidden = !message;
 }
 
+const STATUS_LABELS = { signup: 'Signup', started: 'Race running', stopped: 'Race stopped', ended: 'Race ended' };
+
 async function refreshState() {
   const state = await api('/api/state');
   latestStatus = state.status;
   latestHeats = state.heats;
   latestParticipants = state.participants;
 
-  const statusLabels = { signup: 'Signup', started: 'Race running', stopped: 'Race stopped', ended: 'Race ended' };
-  statusPill.textContent = statusLabels[state.status] || state.status;
+  statusPill.textContent = STATUS_LABELS[state.status] || state.status;
   statusPill.classList.toggle('started', state.status === 'started');
   statusPill.classList.toggle('stopped', state.status === 'stopped');
   statusPill.classList.toggle('ended', state.status === 'ended');
@@ -616,8 +671,7 @@ endRaceButton.addEventListener('click', async () => {
   }
 });
 
-newRaceButton.addEventListener('click', async () => {
-  closeActionsMenu();
+async function startNewRaceFromTemplate() {
   if (!confirm('Start a new race from this template? This archives the ended race into Race History, then clears scans/rounds for a fresh run — heats and participants carry over as they are.')) return;
   try {
     await api('/api/race/new-from-template', { method: 'POST' });
@@ -626,7 +680,14 @@ newRaceButton.addEventListener('click', async () => {
   } catch (error) {
     alert(error.message);
   }
+}
+
+newRaceButton.addEventListener('click', () => {
+  closeActionsMenu();
+  startNewRaceFromTemplate();
 });
+
+newRaceFromHistoryButton.addEventListener('click', startNewRaceFromTemplate);
 
 addHeatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -873,13 +934,15 @@ async function renderParticipantDetail(participantId) {
   }
 }
 
-async function refreshLog() {
+async function refreshLog(force = false) {
   const participantId = logParticipantFilter.value;
   const query = participantId ? `?participantId=${encodeURIComponent(participantId)}` : '';
   const rows = await api(`/api/scans${query}`);
   // Don't rebuild the table while a row is mid-edit — it would overwrite
-  // whatever the user is currently typing on every 1s poll.
-  if (editingScanId === null) {
+  // whatever the user is currently typing on every 1s poll. `force` opts
+  // out of that guard for user-triggered actions (e.g. actually entering or
+  // leaving edit mode), which must always render immediately.
+  if (force || editingScanId === null) {
     renderLog(rows);
   }
   await renderParticipantDetail(participantId);
@@ -901,6 +964,31 @@ function setPage(page) {
 raceHistoryButton.addEventListener('click', () => setPage('raceHistory'));
 
 async function refreshRaceHistory() {
+  currentRaceStatusLabel.textContent = STATUS_LABELS[latestStatus] || latestStatus;
+  currentRaceStatusLabel.classList.toggle('started', latestStatus === 'started');
+  currentRaceStatusLabel.classList.toggle('stopped', latestStatus === 'stopped');
+  currentRaceStatusLabel.classList.toggle('ended', latestStatus === 'ended');
+  newRaceFromHistoryButton.disabled = latestStatus !== 'ended';
+
+  const currentLeaderboard = await api('/api/leaderboard');
+  currentRaceLeaderboardTable.innerHTML = currentLeaderboard
+    .map((row, index) => {
+      const lapDuration = row.lastLapDurationMs != null ? formatDuration(row.lastLapDurationMs) : '—';
+      const distance = row.distanceMeters != null ? formatDistance(row.distanceMeters) : '—';
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${row.startNumber ?? '—'}</td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${escapeHtml(row.heatName || '')}</td>
+          <td>${row.rounds}</td>
+          <td>${distance}</td>
+          <td>${lapDuration}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
   const archives = await api('/api/archive');
   raceHistoryEmpty.hidden = archives.length > 0;
   archiveTable.innerHTML = archives
@@ -968,14 +1056,14 @@ logTable.addEventListener('click', async (event) => {
   const editButton = event.target.closest('.scan-edit-button');
   if (editButton) {
     editingScanId = Number(editButton.dataset.id);
-    refreshLog();
+    refreshLog(true);
     return;
   }
 
   const cancelButton = event.target.closest('.scan-cancel-button');
   if (cancelButton) {
     editingScanId = null;
-    refreshLog();
+    refreshLog(true);
     return;
   }
 
