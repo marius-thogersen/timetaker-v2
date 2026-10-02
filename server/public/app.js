@@ -173,13 +173,15 @@ function populateRaceDateInput(heats) {
 // button (disabled while it still has participants, or if it's the only
 // heat left). Rendered as a table so every heat's fields line up in neat
 // columns, same as the participant/leaderboard tables elsewhere.
-function renderHeatsList(heats) {
+function renderHeatsList(heats, { force = false } = {}) {
   // Only skip re-rendering while the user is actively typing into a field —
   // buttons (e.g. "Remove") shouldn't block the list from refreshing after
-  // they're clicked.
+  // they're clicked. `force` bypasses this: used right after the user's own
+  // heat edit, so the tables reflect what they just did even if focus
+  // hasn't moved on (e.g. Tab landed on an adjacent guarded field).
   const active = document.activeElement;
   const editableClasses = ['heat-name-input', 'heat-time-input'];
-  if (active && active.classList && editableClasses.some((c) => active.classList.contains(c))) return;
+  if (!force && active && active.classList && editableClasses.some((c) => active.classList.contains(c))) return;
 
   const rowsHtml = heats
     .map((heat) => {
@@ -235,14 +237,14 @@ function heatMoveSelectHtml(participant, heats) {
 
 // One card per heat, each with its own participant table (padded to a
 // minimum number of rows so it's obvious where new sign-ups will land).
-function renderParticipantsByHeat(heats, participants) {
+function renderParticipantsByHeat(heats, participants, { force = false } = {}) {
   // Don't rebuild (and so wipe) an in-progress edit of the start number,
   // RFID code, or heat-move fields — same focus-guard pattern as the heats
-  // list. Without this, the 1s poll could yank a <select> out from under
-  // an open dropdown mid-click.
+  // list. `force` bypasses this after the user's own heat edit, so these
+  // cards (heat names, heat-move options, counts) reflect it immediately.
   const active = document.activeElement;
   const editableClasses = ['start-number-input', 'rfid-code-input', 'heat-move-select'];
-  if (active && active.classList && editableClasses.some((c) => active.classList.contains(c)) && participantsByHeat.contains(active)) {
+  if (!force && active && active.classList && editableClasses.some((c) => active.classList.contains(c)) && participantsByHeat.contains(active)) {
     return;
   }
 
@@ -466,7 +468,7 @@ function showError(message) {
 
 const STATUS_LABELS = { signup: 'Signup', started: 'Race running', stopped: 'Race stopped', ended: 'Race ended' };
 
-async function refreshState() {
+async function refreshState({ force = false } = {}) {
   const state = await api('/api/state');
   latestStatus = state.status;
   latestHeats = state.heats;
@@ -493,10 +495,10 @@ async function refreshState() {
 
   await ensureHeatDefaults(state.heats);
   populateRaceDateInput(state.heats);
-  renderHeatsList(state.heats);
+  renderHeatsList(state.heats, { force });
   populateSignupHeatSelect(state.heats);
   populateParticipantFilter(state.participants);
-  renderParticipantsByHeat(state.heats, state.participants);
+  renderParticipantsByHeat(state.heats, state.participants, { force });
 
   // Signups are only allowed while the race hasn't started, or while it's
   // paused (stopped) — never while it's actively live or ended (data is
@@ -576,7 +578,7 @@ participantsByHeat.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ heatId: Number(select.value) }),
       });
-      await refreshState();
+      await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
     }
@@ -733,7 +735,7 @@ addHeatForm.addEventListener('submit', async (event) => {
       body: JSON.stringify({ name: newHeatNameInput.value.trim() }),
     });
     newHeatNameInput.value = '';
-    await refreshState();
+    await refreshState({ force: true });
   } catch (error) {
     alert(error.message);
   }
@@ -751,7 +753,7 @@ raceDateInput.addEventListener('change', async () => {
         body: JSON.stringify({ startAt }),
       });
     }
-    await refreshState();
+    await refreshState({ force: true });
   } catch (error) {
     alert(error.message);
   }
@@ -765,7 +767,7 @@ heatsList.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ name: nameInput.value.trim() }),
       });
-      await refreshState();
+      await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
     }
@@ -781,7 +783,7 @@ heatsList.addEventListener('change', async (event) => {
         method: 'POST',
         body: JSON.stringify({ startAt }),
       });
-      await refreshState();
+      await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
     }
@@ -797,7 +799,7 @@ heatsList.addEventListener('click', async (event) => {
         method: 'POST',
         body: JSON.stringify({ startAt: new Date().toISOString() }),
       });
-      await refreshState();
+      await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
     }
@@ -808,7 +810,7 @@ heatsList.addEventListener('click', async (event) => {
     if (!confirm('Remove this heat?')) return;
     try {
       await api(`/api/heats/${removeButton.dataset.heatId}`, { method: 'DELETE' });
-      await refreshState();
+      await refreshState({ force: true });
     } catch (error) {
       alert(error.message);
     }
