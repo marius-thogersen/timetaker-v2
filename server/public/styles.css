@@ -87,9 +87,10 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 .pill.stopped { color: var(--warning); border-color: var(--warning); }
 .pill.ended { color: var(--dim); border-color: var(--dim); }
 
-/* Slide toggle for the optional "keep screen awake" setting. A plain
-   checkbox visually styled as a track + thumb; the real <input> is kept in
-   the DOM (just visually hidden) so it stays keyboard/focus accessible. */
+/* Slide toggle for the optional "keep screen awake" setting, and for the
+   theme picker below it. A plain checkbox visually styled as a track +
+   thumb; the real <input> is kept in the DOM (just visually hidden) so it
+   stays keyboard/focus accessible. */
 .wake-lock-toggle {
   display: flex;
   align-items: center;
@@ -99,30 +100,27 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 }
 
 /* Inside the header's dropdown menu, the wake-lock toggle and theme picker
-   are full-width rows with their label/control pushed to opposite ends,
-   matching the other menu items' padding. */
+   are full-width rows with their label pushed to the left and the switch
+   pinned to the right, exactly like every other row in the menu. */
 .menu-item.wake-lock-toggle,
 .menu-item.theme-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  cursor: default;
+  cursor: pointer;
 }
 .menu-item.wake-lock-toggle .wake-lock-label,
 .menu-item.theme-row span {
   flex: 1;
+  font-size: inherit;
+  color: inherit;
 }
 
 .menu-divider {
   height: 1px;
   background: var(--border);
-  margin: var(--space-2) 0;
-}
-
-.wake-lock-label {
-  font-size: 0.8rem;
-  color: var(--dim);
+  margin: var(--space-1) var(--space-2);
 }
 
 .switch {
@@ -145,7 +143,7 @@ h1 { margin: 0; color: var(--accent); font-size: 1.3rem; font-weight: 700; }
 .switch-track {
   position: absolute;
   inset: 0;
-  background: var(--panel);
+  background: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   transition: background-color 0.15s ease, border-color 0.15s ease;
@@ -614,15 +612,15 @@ tr.clickable-row:hover td { background: var(--border); }
   position: absolute;
   right: 0;
   top: calc(100% + var(--space-2));
-  min-width: 200px;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  padding: var(--space-2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   z-index: 10;
 }
 .actions-menu[hidden] { display: none; }
@@ -645,7 +643,8 @@ tr.clickable-row:hover td { background: var(--border); }
   cursor: pointer;
   box-sizing: border-box;
 }
-.menu-item:hover { background: var(--border); }
+.menu-item:hover { background: var(--panel-hover, rgba(128, 128, 128, 0.12)); }
+.menu-item.danger-text:hover { background: rgba(255, 61, 107, 0.12); }
 
 /* ---------- Race control panel (play/pause, reset, end) ---------- */
 /* A stack of bold, color-coded, icon-led buttons inside the ⋮ dropdown —
