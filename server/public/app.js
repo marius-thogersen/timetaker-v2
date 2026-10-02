@@ -167,25 +167,22 @@ function populateRaceDateInput(heats) {
 }
 
 // One management row per heat: name, an auto-saving time-of-day input
-// (sharing the single race date above), an optional duration (hours +
-// minutes), and a remove button (disabled while it still has participants,
-// or if it's the only heat left). Rendered as a table so every heat's
-// fields line up in neat columns, same as the participant/leaderboard
-// tables elsewhere.
+// (sharing the single race date above), and a remove button (disabled
+// while it still has participants, or if it's the only heat left).
+// Rendered as a table so every heat's fields line up in neat columns,
+// same as the participant/leaderboard tables elsewhere.
 function renderHeatsList(heats) {
   // Only skip re-rendering while the user is actively typing into a field —
   // buttons (e.g. "Remove") shouldn't block the list from refreshing after
   // they're clicked.
   const active = document.activeElement;
-  const editableClasses = ['heat-time-input', 'heat-duration-hours', 'heat-duration-minutes'];
+  const editableClasses = ['heat-time-input'];
   if (active && active.classList && editableClasses.some((c) => active.classList.contains(c))) return;
 
   const rowsHtml = heats
     .map((heat) => {
       const participantCount = latestParticipants.filter((p) => p.heatId === heat.id).length;
       const canRemove = heats.length > 1 && participantCount === 0;
-      const hours = heat.durationMinutes ? Math.floor(heat.durationMinutes / 60) : '';
-      const minutes = heat.durationMinutes ? heat.durationMinutes % 60 : '';
       return `
         <tr>
           <td class="heat-name">${escapeHtml(heat.name)}</td>
@@ -193,13 +190,6 @@ function renderHeatsList(heats) {
             <span class="cell-inline">
               <input type="time" class="heat-time-input" data-heat-id="${heat.id}" value="${heat.startAt ? timeValueOf(heat.startAt) : DEFAULT_HEAT_TIME}" />
               <button type="button" class="link-button heat-now-button" data-heat-id="${heat.id}">now</button>
-            </span>
-          </td>
-          <td>
-            <span class="cell-inline">
-              <input type="number" class="heat-duration-hours" data-heat-id="${heat.id}" min="0" max="23" placeholder="h" value="${hours}" /> h
-              <input type="number" class="heat-duration-minutes" data-heat-id="${heat.id}" min="0" max="59" placeholder="m" value="${minutes}" /> m
-              ${heat.durationMinutes ? `<button type="button" class="link-button heat-duration-clear-button" data-heat-id="${heat.id}">clear</button>` : ''}
             </span>
           </td>
           <td class="numeric">${participantCount}</td>
@@ -214,7 +204,7 @@ function renderHeatsList(heats) {
   heatsList.innerHTML = `
     <table class="heats-table">
       <thead>
-        <tr><th>Heat</th><th>Start time</th><th>Duration (optional)</th><th>Signed up</th><th></th></tr>
+        <tr><th>Heat</th><th>Start time</th><th>Signed up</th><th></th></tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
     </table>
@@ -739,24 +729,6 @@ heatsList.addEventListener('change', async (event) => {
     }
     return;
   }
-  const durationHoursInput = event.target.closest('.heat-duration-hours');
-  const durationMinutesInput = event.target.closest('.heat-duration-minutes');
-  if (durationHoursInput || durationMinutesInput) {
-    const heatId = (durationHoursInput || durationMinutesInput).dataset.heatId;
-    const row = event.target.closest('tr');
-    const hoursValue = Number(row.querySelector('.heat-duration-hours').value) || 0;
-    const minutesValue = Number(row.querySelector('.heat-duration-minutes').value) || 0;
-    const totalMinutes = hoursValue * 60 + minutesValue;
-    try {
-      await api(`/api/heats/${heatId}/duration`, {
-        method: 'POST',
-        body: JSON.stringify({ durationMinutes: totalMinutes > 0 ? totalMinutes : null }),
-      });
-      await refreshState();
-    } catch (error) {
-      alert(error.message);
-    }
-  }
 });
 
 heatsList.addEventListener('click', async (event) => {
@@ -783,18 +755,6 @@ heatsList.addEventListener('click', async (event) => {
       alert(error.message);
     }
     return;
-  }
-  const clearDurationButton = event.target.closest('.heat-duration-clear-button');
-  if (clearDurationButton) {
-    try {
-      await api(`/api/heats/${clearDurationButton.dataset.heatId}/duration`, {
-        method: 'POST',
-        body: JSON.stringify({ durationMinutes: null }),
-      });
-      await refreshState();
-    } catch (error) {
-      alert(error.message);
-    }
   }
 });
 

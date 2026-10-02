@@ -436,7 +436,6 @@ tr.clickable-row:hover td { background: var(--border); }
   gap: var(--space-2);
 }
 .cell-inline input { width: auto; }
-.heat-duration-hours, .heat-duration-minutes { width: 54px; }
 
 .start-number-input { width: 64px; }
 .rfid-code-input { width: 100%; max-width: 220px; }
