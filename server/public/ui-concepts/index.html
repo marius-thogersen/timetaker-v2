@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TimeTaker — UI Concepts</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1a1a2e, #0a0a12 70%);
+    color: #eee; padding: 40px 20px;
+  }
+  .wrap { max-width: 900px; width: 100%; }
+  h1 { font-size: 2rem; margin-bottom: 4px; }
+  p.sub { color: #9aa; margin-top: 0; margin-bottom: 32px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    background: #15151f; border: 1px solid #2a2a3a; border-radius: 14px;
+    padding: 24px; transition: transform .15s ease, border-color .15s ease;
+  }
+  a.card:hover { transform: translateY(-4px); border-color: #5577ff; }
+  .emoji { font-size: 2.2rem; display: block; margin-bottom: 10px; }
+  .card h2 { margin: 0 0 6px; font-size: 1.15rem; }
+  .card p { margin: 0; color: #9aa; font-size: .92rem; line-height: 1.4; }
+  footer { margin-top: 36px; color: #667; font-size: .85rem; }
+  footer a { color: #88a; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎨 UI Concepts</h1>
+    <p class="sub">Three standalone spectator/leaderboard views, each reading the same live API. Pick a vibe.</p>
+    <div class="cards">
+      <a class="card" href="kiosk.html">
+        <span class="emoji">📺</span>
+        <h2>Kiosk / Big Screen</h2>
+        <p>Huge type for projection or a TV at the venue. Podium highlight for the top 3, auto-refreshing.</p>
+      </a>
+      <a class="card" href="cards.html">
+        <span class="emoji">🃏</span>
+        <h2>Card Deck</h2>
+        <p>Every participant as a flippable trading card in a responsive grid — playful, colorful, mobile-friendly.</p>
+      </a>
+      <a class="card" href="terminal.html">
+        <span class="emoji">💻</span>
+        <h2>Terminal / Retro</h2>
+        <p>Green-on-black CRT aesthetic, monospace, scrolling log feel — for the nerds in the room.</p>
+      </a>
+    </div>
+    <footer>
+      These are throwaway demo pages — self-contained (no shared CSS/JS with the main app) and safe to delete:
+      just remove <code>server/public/ui-concepts/</code> and the one link to it in <code>index.html</code>'s header.
+    </footer>
+  </div>
+</body>
+</html>
