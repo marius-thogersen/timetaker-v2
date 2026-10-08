@@ -5,8 +5,7 @@ works offline after setup.
 
 ## Install from the ZIP
 
-1. Open the [TimeTaker GitHub page](https://github.com/marius-thogersen/timetaker-v2).
-2. Select **Code** → **Download ZIP**.
+1. [Download the latest ZIP of TimeTaker](https://github.com/marius-thogersen/timetaker-v2/archive/refs/heads/master.zip).
 3. In File Explorer, right-click the downloaded ZIP and select **Extract All**.
    Extract it to a folder you can write to, such as `Documents\TimeTaker`.
    **Do not install it under `Program Files`**: TimeTaker saves race data in
